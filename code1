@@ -1,0 +1,18 @@
+def message = """
+                            <html>
+                                <body>
+                                    <h3 style="color:red;">Metrics Alert: High wait_job_count</h3>
+                                    <table border="1" cellpadding="5">
+                                        <tr>
+                                            <td><b>Metric</b></td>
+                                            <td><b>Value</b></td>
+                                        </tr>
+                                        <tr>
+                                            <td>wait_job_count</td>
+                                            <td>${metricValue}</td>
+                                        </tr>
+                                    </table>
+                                    <p>Please investigate the cause of the high wait_job_count.</p>
+                                </body>
+                            </html>
+                            """
