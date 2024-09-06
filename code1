@@ -20,7 +20,7 @@ pipeline {
                     if (metricLine) {
                         def metricValue = metricLine.split('=')[1] as Integer
 
-                        // Define common message template as a method
+                        // Define common message template with multiple uses of variables
                         def messageTemplate = { level, color, threshold ->
                             return """
                             <html>
@@ -37,6 +37,8 @@ pipeline {
                                         </tr>
                                     </table>
                                     <p>The wait_job_count has exceeded the ${threshold} threshold. Please investigate.</p>
+                                    <p><i>Note:</i> This alert level is <b>${level}</b> and the color used is <b>${color}</b>.</p>
+                                    <p>The defined threshold for this alert is <b>${threshold}</b>.</p>
                                 </body>
                             </html>
                             """
