@@ -1,7 +1,31 @@
-def message = """
+pipeline {
+    agent any
+    stages {
+        stage('Run Script and Capture Metric') {
+            steps {
+                script {
+                    // Run the script and capture the output
+                    def scriptOutput = sh(
+                        script: '''
+                        ./your_script.sh   # Replace with your actual script
+                        ''', 
+                        returnStdout: true
+                    ).trim()
+
+                    echo scriptOutput
+
+                    def metricPattern = ~/wait_job_count=\d+/
+                    def metricLine = scriptOutput.split('\n').find { line -> line ==~ metricPattern }
+
+                    if (metricLine) {
+                        def metricValue = metricLine.split('=')[1] as Integer
+
+                        // Define common message template as a method
+                        def messageTemplate = { level, color, threshold ->
+                            return """
                             <html>
                                 <body>
-                                    <h3 style="color:red;">Metrics Alert: High wait_job_count</h3>
+                                    <h3 style="color:${color};">${level} Alert: wait_job_count Exceeds Threshold</h3>
                                     <table border="1" cellpadding="5">
                                         <tr>
                                             <td><b>Metric</b></td>
@@ -12,7 +36,34 @@ def message = """
                                             <td>${metricValue}</td>
                                         </tr>
                                     </table>
-                                    <p>Please investigate the cause of the high wait_job_count.</p>
+                                    <p>The wait_job_count has exceeded the ${threshold} threshold. Please investigate.</p>
                                 </body>
                             </html>
                             """
+                        }
+
+                        // Variable for threshold
+                        def TH = '10'
+
+                        // Use a separate function for sending notifications
+                        def sendNotification = { level, color, threshold ->
+                            def message = messageTemplate(level, color, threshold)
+                            harmonySend user: 'your-username', message: message, format: 'html'
+                        }
+
+                        // Based on the metric value, send different alerts
+                        if (metricValue > 20) {
+                            sendNotification('Critical', 'red', '20')
+                        } else if (metricValue > 10) {
+                            sendNotification('Warning', 'yellow', TH)
+                        } else {
+                            echo "wait_job_count (${metricValue}) is within the safe threshold."
+                        }
+                    } else {
+                        echo "No wait_job_count found in the script output."
+                    }
+                }
+            }
+        }
+    }
+}
