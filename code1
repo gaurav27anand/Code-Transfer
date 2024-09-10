@@ -1,72 +1,66 @@
-{
-  "blocks": [
-    {
-      "oldName": "etscfg/eupxnsort/trunk/install/common/qa2_pk_bcp/lnqovy21sx/etc/rprtz/ext_modifier.hob",
-      "isGitDiff": true,
-      "isCombined": false,
-      "lines": [
-        {
-          "content": "clientDT = [fixtag.Account, fixtag.AffiliateInd, fixtag.ClientID, fixtag.ClientFundID, fixtag.CommMgmtClientExecutionPref, fixtag.CrossPointClientEligibleInd]",
-          "type": "d2h-ins",
-          "oldNumber": null,
-          "newNumber": 3
-        },
-        {
-          "content": "clientDT_Exch = [fixtag.Account, fixtag.ExecInst, fixtag.ExecType]",
-          "type": "d2h-ins",
-          "oldNumber": null,
-          "newNumber": 5
-        },
-        {
-          "content": "+",
-          "type": "d2h-ins",
-          "oldNumber": null,
-          "newNumber": 1
-        }
-      ],
-      "newName": "etscfg/eupxnsort/trunk/install/common/qa2_pk_bcp/lnqovy21sx/ext_tdt.hob",
-      "deletedLines": 0,
-      "addedLines": 47
-    },
-    {
-      "oldName": null,
-      "lines": [
-        {
-          "content": "+",
-          "type": "d2h-ins",
-          "oldNumber": null,
-          "newNumber": 1
-        },
-        {
-          "content": "exchangeDT_Exch = [fixtag.MarketID, fixtag.ExecID, fixtag.ExecType]",
-          "type": "d2h-ins",
-          "oldNumber": null,
-          "newNumber": 2
-        }
-      ],
-      "newName": null,
-      "deletedLines": 0,
-      "addedLines": 5
-    },
-    {
-      "oldName": null,
-      "lines": [
-        {
-          "content": "setTradeID = fixtag.TraderID, fixtag.TradingSessionID",
-          "type": "d2h-ins",
-          "oldNumber": null,
-          "newNumber": 6
-        },
-        {
-          "content": "fixtag.TraderID, fixtag.Price, fixtag.OriginatingRegion",
-          "type": "d2h-ins",
-          "oldNumber": null,
-          "newNumber": 8
-        }
-      ],
-      "newName": null,
-      "deletedLines": 0,
-      "addedLines": 3
-    }
-  ]
-}
+import json
+import re
+import os
+
+def sanitize_filename(filename):
+    # Remove any characters that are not allowed in filenames
+    return re.sub(r'[<>:"/\\|?*\x00-\x1F]', '', filename)
+
+def diff_splitter(directory, json_file, project_list):
+    # Load the diff JSON file
+    try:
+        with open(json_file, 'r') as file:
+            diff_json = json.load(file)
+    except FileNotFoundError:
+        print(f"Error: '{json_file}' not found.")
+        return
+    except json.JSONDecodeError:
+        print(f"Error: Failed to decode '{json_file}'.")
+        return
+
+    # Ensure 'blocks' is a list
+    blocks = diff_json.get('blocks', [])
+    if not isinstance(blocks, list):
+        print("Error: 'blocks' in JSON is not a list.")
+        return
+
+    # Iterate through each project name and create separate JSON files
+    for pattern in project_list:
+        # Compile the current pattern into a regular expression
+        regex = re.compile(pattern)
+
+        # List to store blocks matching the current pattern
+        matching_blocks = []
+
+        # Iterate over each block in the blocks list
+        for block in blocks:
+            # Ensure each block is a dictionary
+            if isinstance(block, dict):
+                # Safely get 'oldName' and ensure it's a string before applying regex
+                old_name = block.get('oldName')
+                
+                # Check if 'oldName' exists, is a string, and matches the current pattern
+                if old_name and isinstance(old_name, str) and regex.search(old_name):
+                    matching_blocks.append(block)
+            else:
+                print("Warning: Found an item in 'blocks' that is not a dictionary.")
+
+        # Use the pattern name itself as the output filename
+        sanitized_pattern = sanitize_filename(pattern)
+        output_filename = os.path.join(directory, f"{sanitized_pattern}.json")
+
+        # Debug print statements
+        print(f"Pattern: '{pattern}'")
+        print(f"Sanitized Filename: '{output_filename}'")
+
+        # Save the matching blocks for the current pattern to a separate JSON file
+        if matching_blocks:
+            with open(output_filename, 'w') as out_file:
+                json.dump({"blocks": matching_blocks}, out_file, indent=4)
+            print(f"Saved {len(matching_blocks)} blocks matching '{pattern}' to '{output_filename}'")
+        else:
+            print(f"No matching blocks found for pattern '{pattern}'")
+
+# Example usage
+project_list = ["abc", "def", "ghi", "jh"]
+diff_splitter('output_directory', 'large_diff.json', project_list)
