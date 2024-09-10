@@ -20,16 +20,21 @@ def diff_splitter(directory, json_file, project_list):
 
     # Check if diff_json is a list
     if isinstance(diff_json, list):
-        print("Warning: 'diff_json' is a list. Expecting a dictionary.")
-        # Process each item in the list
-        for diff_item in diff_json:
+        print("Processing a list of items.")
+        
+        # Iterate through each item in the list
+        for index, diff_item in enumerate(diff_json):
+            print(f"Processing item {index}")
+            
+            # Ensure each item is a dictionary
             if isinstance(diff_item, dict):
                 blocks = diff_item.get('blocks', [])
+                
                 if not isinstance(blocks, list):
-                    print("Error: 'blocks' in JSON item is not a list.")
+                    print(f"Error: 'blocks' in item {index} is not a list.")
                     continue
                 
-                # Process blocks in this item
+                # Iterate through each pattern and create separate JSON files
                 for pattern in project_list:
                     # Compile the current pattern into a regular expression
                     regex = re.compile(pattern)
@@ -48,11 +53,11 @@ def diff_splitter(directory, json_file, project_list):
                             if old_name and isinstance(old_name, str) and regex.search(old_name):
                                 matching_blocks.append(block)
                         else:
-                            print("Warning: Found an item in 'blocks' that is not a dictionary.")
+                            print(f"Warning: Found an item in 'blocks' that is not a dictionary. Item: {block}")
 
                     # Use the pattern name itself as the output filename
                     sanitized_pattern = sanitize_filename(pattern)
-                    output_filename = os.path.join(directory, f"{sanitized_pattern}.json")
+                    output_filename = os.path.join(directory, f"{sanitized_pattern}_item{index}.json")
 
                     # Debug print statements
                     print(f"Pattern: '{pattern}'")
@@ -64,9 +69,9 @@ def diff_splitter(directory, json_file, project_list):
                             json.dump({"blocks": matching_blocks}, out_file, indent=4)
                         print(f"Saved {len(matching_blocks)} blocks matching '{pattern}' to '{output_filename}'")
                     else:
-                        print(f"No matching blocks found for pattern '{pattern}'")
+                        print(f"No matching blocks found for pattern '{pattern}' in item {index}")
             else:
-                print("Warning: Found an item in 'diff_json' that is not a dictionary.")
+                print(f"Warning: Item {index} in 'diff_json' is not a dictionary. Item: {diff_item}")
     else:
         print("Error: 'diff_json' is not a list. Expecting a list of dictionaries.")
 
