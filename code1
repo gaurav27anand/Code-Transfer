@@ -1,71 +1,72 @@
-pipeline {
-    agent any
-    stages {
-        stage('Run Script and Capture Metric') {
-            steps {
-                script {
-                    // Run the script and capture the output
-                    def scriptOutput = sh(
-                        script: '''
-                        ./your_script.sh   # Replace with your actual script
-                        ''', 
-                        returnStdout: true
-                    ).trim()
-
-                    echo scriptOutput
-
-                    def metricPattern = ~/wait_job_count=\d+/
-                    def metricLine = scriptOutput.split('\n').find { line -> line ==~ metricPattern }
-
-                    if (metricLine) {
-                        def metricValue = metricLine.split('=')[1] as Integer
-
-                        // Define common message template with multiple uses of variables
-                        def messageTemplate = { level, color, threshold ->
-                            return """
-                            <html>
-                                <body>
-                                    <h3 style="color:${color};">${level} Alert: wait_job_count Exceeds Threshold</h3>
-                                    <table border="1" cellpadding="5">
-                                        <tr>
-                                            <td><b>Metric</b></td>
-                                            <td><b>Value</b></td>
-                                        </tr>
-                                        <tr>
-                                            <td>wait_job_count</td>
-                                            <td>${metricValue}</td>
-                                        </tr>
-                                    </table>
-                                    <p>The wait_job_count has exceeded the ${threshold} threshold. Please investigate.</p>
-                                    <p><i>Note:</i> This alert level is <b>${level}</b> and the color used is <b>${color}</b>.</p>
-                                    <p>The defined threshold for this alert is <b>${threshold}</b>.</p>
-                                </body>
-                            </html>
-                            """
-                        }
-
-                        // Variable for threshold
-                        def TH = '10'
-
-                        // Use a separate function for sending notifications
-                        def sendNotification = { level, color, threshold ->
-                            def message = messageTemplate(level, color, threshold)
-                            harmonySend user: 'your-username', message: message, format: 'html'
-                        }
-
-                        // Based on the metric value, send different alerts
-                        if (metricValue > 20) {
-                            sendNotification('Critical', 'red', '20')
-                        } else if (metricValue > 10) {
-                            sendNotification('Warning', 'yellow', TH)
-                        } else {
-                            echo "wait_job_count (${metricValue}) is within the safe threshold."
-                        }
-                    } else {
-                        echo "No wait_job_count found in the script output."
-                    }
-                }
-            }
+{
+  "blocks": [
+    {
+      "oldName": "etscfg/eupxnsort/trunk/install/common/qa2_pk_bcp/lnqovy21sx/etc/rprtz/ext_modifier.hob",
+      "isGitDiff": true,
+      "isCombined": false,
+      "lines": [
+        {
+          "content": "clientDT = [fixtag.Account, fixtag.AffiliateInd, fixtag.ClientID, fixtag.ClientFundID, fixtag.CommMgmtClientExecutionPref, fixtag.CrossPointClientEligibleInd]",
+          "type": "d2h-ins",
+          "oldNumber": null,
+          "newNumber": 3
+        },
+        {
+          "content": "clientDT_Exch = [fixtag.Account, fixtag.ExecInst, fixtag.ExecType]",
+          "type": "d2h-ins",
+          "oldNumber": null,
+          "newNumber": 5
+        },
+        {
+          "content": "+",
+          "type": "d2h-ins",
+          "oldNumber": null,
+          "newNumber": 1
         }
+      ],
+      "newName": "etscfg/eupxnsort/trunk/install/common/qa2_pk_bcp/lnqovy21sx/ext_tdt.hob",
+      "deletedLines": 0,
+      "addedLines": 47
+    },
+    {
+      "oldName": null,
+      "lines": [
+        {
+          "content": "+",
+          "type": "d2h-ins",
+          "oldNumber": null,
+          "newNumber": 1
+        },
+        {
+          "content": "exchangeDT_Exch = [fixtag.MarketID, fixtag.ExecID, fixtag.ExecType]",
+          "type": "d2h-ins",
+          "oldNumber": null,
+          "newNumber": 2
+        }
+      ],
+      "newName": null,
+      "deletedLines": 0,
+      "addedLines": 5
+    },
+    {
+      "oldName": null,
+      "lines": [
+        {
+          "content": "setTradeID = fixtag.TraderID, fixtag.TradingSessionID",
+          "type": "d2h-ins",
+          "oldNumber": null,
+          "newNumber": 6
+        },
+        {
+          "content": "fixtag.TraderID, fixtag.Price, fixtag.OriginatingRegion",
+          "type": "d2h-ins",
+          "oldNumber": null,
+          "newNumber": 8
+        }
+      ],
+      "newName": null,
+      "deletedLines": 0,
+      "addedLines": 3
     }
+  ]
 }
