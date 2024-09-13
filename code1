@@ -1,64 +1,57 @@
 import os
-import json
-import re
 
-def sanitize_filename(filename):
-    """Sanitize the filename by removing invalid characters."""
-    return re.sub(r'[<>:"/\\|?*\x00-\x1F]', '', filename)
+def create_html_file(file_list, output_file):
+    # Dictionary to hold files grouped by base name
+    file_groups = {}
 
-def write_to_file(output_filename, batch_blocks, count):
-    """Helper function to write JSON blocks to a file."""
-    with open(output_filename, 'a') as file:
-        if count == 1:
-            file.write('[')
+    # Iterate over each file in the list
+    for file in file_list:
+        # Check if "part" exists in the file name
+        if "part" in file:
+            # Extract the base name (before "part")
+            base_name = file.split("part")[0].strip('_')  # Remove extra underscores
+            # Group the file under its base name
+            if base_name not in file_groups:
+                file_groups[base_name] = []
+            file_groups[base_name].append(file)
         else:
-            file.write(',')
-        file.write(json.dumps(batch_blocks))
-        file.write(']')
-        file.close()
+            # Files without "part" will be added directly to the list
+            file_groups[file] = []
 
-# Initialize dictionaries and sets
-generated_blocks_for_ = {}
-generated_blocks = set()
+    # Start building the HTML content
+    html_content = "<html>\n<head><title>File List</title></head>\n<body>\n<ul>\n"
 
-for project in project_list:
-    generated_blocks_for_[project] = []
+    # Iterate over each base file in the dictionary
+    for base, parts in file_groups.items():
+        # Add the base file as a list item
+        html_content += f"  <li>{base}</li>\n"
 
-# Loop through the diff_json and extract matching blocks for each project
-for index, diff_item in enumerate(diff_json):
-    if isinstance(diff_item, dict):
-        old_name = diff_item.get('oldName')
-        if old_name:
-            for project in project_list:
-                regex = re.compile(project)
-                if isinstance(old_name, str) and regex.search(old_name):
-                    generated_blocks_for_[project].append(diff_item)
-        else:
-            print(f"No file name present in {diff_item}")
+        # If there are parts associated with the base, create a nested list
+        if parts:
+            html_content += "  <ul>\n"
+            for part in parts:
+                html_content += f"    <li>{part}</li>\n"
+            html_content += "  </ul>\n"
 
-# Write blocks to files, splitting by 100 blocks each time
-for project in project_list:
-    output_filename_base = os.path.join(diff_dir, f"block_of_{sanitize_filename(project)}")
-    
-    blocks = generated_blocks_for_[project]
-    total_blocks = len(blocks)
-    
-    part_number = 1
-    count = 1
-    
-    for start in range(0, total_blocks, 100):
-        end = min(start + 100, total_blocks)
-        batch_blocks = blocks[start:end]
-        
-        # Add part number to filename if there are multiple batches
-        output_filename = f"{output_filename_base}_part{part_number}.json"
-        part_number += 1
-        
-        # Write the current batch of blocks to the file
-        write_to_file(output_filename, batch_blocks, count)
-        count += 1
+    # Close the HTML tags
+    html_content += "</ul>\n</body>\n</html>"
 
-        # Store the generated filename
-        generated_blocks.add(output_filename)
-    
-    print(f"Saved {len(blocks)} blocks matching '{project}' to files with base name '{output_filename_base}'")
+    # Write the HTML content to the output file
+    with open(output_file, 'w') as f:
+        f.write(html_content)
+
+    print(f"HTML file '{output_file}' has been created.")
+
+# Example usage
+file_list = [
+    "file1.txt",
+    "file2_part1.txt",
+    "file2_part2.txt",
+    "file3_part1.txt",
+    "file3_part2.txt",
+    "file3_part3.txt",
+    "file4.txt"
+]
+
+output_file = "file_list.html"
+create_html_file(file_list, output_file)
