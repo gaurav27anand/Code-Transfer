@@ -1,57 +1,43 @@
-import os
+/* Basic reset and styling */
+body {
+    font-family: Arial, sans-serif;
+}
 
-def create_html_file(file_list, output_file):
-    # Dictionary to hold files grouped by base name
-    file_groups = {}
+ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
 
-    # Iterate over each file in the list
-    for file in file_list:
-        # Check if "part" exists in the file name
-        if "part" in file:
-            # Extract the base name (before "part")
-            base_name = file.split("part")[0].strip('_')  # Remove extra underscores
-            # Group the file under its base name
-            if base_name not in file_groups:
-                file_groups[base_name] = []
-            file_groups[base_name].append(file)
-        else:
-            # Files without "part" will be added directly to the list
-            file_groups[file] = []
+.tree ul {
+    margin-left: 20px;
+}
 
-    # Start building the HTML content
-    html_content = "<html>\n<head><title>File List</title></head>\n<body>\n<ul>\n"
+/* Add lines and indentation for tree structure */
+.tree li {
+    position: relative;
+    padding-left: 20px;
+}
 
-    # Iterate over each base file in the dictionary
-    for base, parts in file_groups.items():
-        # Add the base file as a list item
-        html_content += f"  <li>{base}</li>\n"
+.tree li:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 10px;
+    height: 100%;
+    border-left: 2px solid #000;
+}
 
-        # If there are parts associated with the base, create a nested list
-        if parts:
-            html_content += "  <ul>\n"
-            for part in parts:
-                html_content += f"    <li>{part}</li>\n"
-            html_content += "  </ul>\n"
-
-    # Close the HTML tags
-    html_content += "</ul>\n</body>\n</html>"
-
-    # Write the HTML content to the output file
-    with open(output_file, 'w') as f:
-        f.write(html_content)
-
-    print(f"HTML file '{output_file}' has been created.")
-
-# Example usage
-file_list = [
-    "file1.txt",
-    "file2_part1.txt",
-    "file2_part2.txt",
-    "file3_part1.txt",
-    "file3_part2.txt",
-    "file3_part3.txt",
-    "file4.txt"
-]
-
-output_file = "file_list.html"
-create_html_file(file_list, output_file)
+.tree li:after {
+    content: '';
+    position: absolute;
+    top: 10px;
+    left: -10px;
+    width: 10px;
+    height: 10px;
+    border-top: 2px solid #000;
+    border-left: 2px solid #000;
+    border-radius: 0 0 0 50%;
+    background: #fff;
+}
