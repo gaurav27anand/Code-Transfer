@@ -1,80 +1,64 @@
+import os
 import json
 import re
-import os
 
 def sanitize_filename(filename):
-    # Remove any characters that are not allowed in filenames
+    """Sanitize the filename by removing invalid characters."""
     return re.sub(r'[<>:"/\\|?*\x00-\x1F]', '', filename)
 
-def diff_splitter(directory, json_file, project_list):
-    # Load the diff JSON file
-    try:
-        with open(json_file, 'r') as file:
-            diff_json = json.load(file)
-    except FileNotFoundError:
-        print(f"Error: '{json_file}' not found.")
-        return
-    except json.JSONDecodeError:
-        print(f"Error: Failed to decode '{json_file}'.")
-        return
+def write_to_file(output_filename, batch_blocks, count):
+    """Helper function to write JSON blocks to a file."""
+    with open(output_filename, 'a') as file:
+        if count == 1:
+            file.write('[')
+        else:
+            file.write(',')
+        file.write(json.dumps(batch_blocks))
+        file.write(']')
+        file.close()
 
-    # Check if diff_json is a list
-    if isinstance(diff_json, list):
-        print("Processing a list of items.")
+# Initialize dictionaries and sets
+generated_blocks_for_ = {}
+generated_blocks = set()
+
+for project in project_list:
+    generated_blocks_for_[project] = []
+
+# Loop through the diff_json and extract matching blocks for each project
+for index, diff_item in enumerate(diff_json):
+    if isinstance(diff_item, dict):
+        old_name = diff_item.get('oldName')
+        if old_name:
+            for project in project_list:
+                regex = re.compile(project)
+                if isinstance(old_name, str) and regex.search(old_name):
+                    generated_blocks_for_[project].append(diff_item)
+        else:
+            print(f"No file name present in {diff_item}")
+
+# Write blocks to files, splitting by 100 blocks each time
+for project in project_list:
+    output_filename_base = os.path.join(diff_dir, f"block_of_{sanitize_filename(project)}")
+    
+    blocks = generated_blocks_for_[project]
+    total_blocks = len(blocks)
+    
+    part_number = 1
+    count = 1
+    
+    for start in range(0, total_blocks, 100):
+        end = min(start + 100, total_blocks)
+        batch_blocks = blocks[start:end]
         
-        # Iterate through each item in the list
-        for index, diff_item in enumerate(diff_json):
-            print(f"Processing item {index}")
-            
-            # Ensure each item is a dictionary
-            if isinstance(diff_item, dict):
-                blocks = diff_item.get('blocks', [])
-                
-                if not isinstance(blocks, list):
-                    print(f"Error: 'blocks' in item {index} is not a list.")
-                    continue
-                
-                # Iterate through each pattern and create separate JSON files
-                for pattern in project_list:
-                    # Compile the current pattern into a regular expression
-                    regex = re.compile(pattern)
+        # Add part number to filename if there are multiple batches
+        output_filename = f"{output_filename_base}_part{part_number}.json"
+        part_number += 1
+        
+        # Write the current batch of blocks to the file
+        write_to_file(output_filename, batch_blocks, count)
+        count += 1
 
-                    # List to store blocks matching the current pattern
-                    matching_blocks = []
-
-                    # Iterate over each block in the blocks list
-                    for block in blocks:
-                        # Ensure each block is a dictionary
-                        if isinstance(block, dict):
-                            # Safely get 'oldName' and ensure it's a string before applying regex
-                            old_name = block.get('oldName')
-                            
-                            # Check if 'oldName' exists, is a string, and matches the current pattern
-                            if old_name and isinstance(old_name, str) and regex.search(old_name):
-                                matching_blocks.append(block)
-                        else:
-                            print(f"Warning: Found an item in 'blocks' that is not a dictionary. Item: {block}")
-
-                    # Use the pattern name itself as the output filename
-                    sanitized_pattern = sanitize_filename(pattern)
-                    output_filename = os.path.join(directory, f"{sanitized_pattern}_item{index}.json")
-
-                    # Debug print statements
-                    print(f"Pattern: '{pattern}'")
-                    print(f"Sanitized Filename: '{output_filename}'")
-
-                    # Save the matching blocks for the current pattern to a separate JSON file
-                    if matching_blocks:
-                        with open(output_filename, 'w') as out_file:
-                            json.dump({"blocks": matching_blocks}, out_file, indent=4)
-                        print(f"Saved {len(matching_blocks)} blocks matching '{pattern}' to '{output_filename}'")
-                    else:
-                        print(f"No matching blocks found for pattern '{pattern}' in item {index}")
-            else:
-                print(f"Warning: Item {index} in 'diff_json' is not a dictionary. Item: {diff_item}")
-    else:
-        print("Error: 'diff_json' is not a list. Expecting a list of dictionaries.")
-
-# Example usage
-project_list = ["abc", "def", "ghi", "jh"]
-diff_splitter('output_directory', 'large_diff.json', project_list)
+        # Store the generated filename
+        generated_blocks.add(output_filename)
+    
+    print(f"Saved {len(blocks)} blocks matching '{project}' to files with base name '{output_filename_base}'")
