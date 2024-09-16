@@ -1,43 +1,9 @@
-/* Basic reset and styling */
-body {
-    font-family: Arial, sans-serif;
-}
+Problem Statement:
+When a Pull Request (PR) is built, and it includes global changes or template modifications, it often impacts a large number of files. Traditionally, the details of these changes are compiled into a single HTML file, which is then uploaded to an accessible location. However, this approach can cause performance issues as the resulting file contains hundreds of thousands of changed lines. Attempting to load this massive HTML file can lead to browser crashes or the page failing to load altogether.
 
-ul {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-}
+Enhancement Implemented:
+To address these performance bottlenecks, the HTML pages are now divided into multiple sections based on projects. If a project contains more than 100 modified files, the changes are further subdivided into parts, with each part containing a maximum of 100 files.
 
-.tree ul {
-    margin-left: 20px;
-}
-
-/* Add lines and indentation for tree structure */
-.tree li {
-    position: relative;
-    padding-left: 20px;
-}
-
-.tree li:before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 10px;
-    height: 100%;
-    border-left: 2px solid #000;
-}
-
-.tree li:after {
-    content: '';
-    position: absolute;
-    top: 10px;
-    left: -10px;
-    width: 10px;
-    height: 10px;
-    border-top: 2px solid #000;
-    border-left: 2px solid #000;
-    border-radius: 0 0 0 50%;
-    background: #fff;
-}
+Project Segmentation: Each project will have its own dedicated HTML page.
+File Subdivision: If a project has fewer than 100 modified files, the entire project is contained in one HTML page. If it exceeds 100 files, it is broken down into multiple sections (or parts), each containing no more than 100 files.
+An index or landing page will also be generated, listing all the divided sections and their respective URLs. This landing page will be linked in the PR, replacing the previous single diff URL, allowing for better navigation and performance when reviewing changes.
