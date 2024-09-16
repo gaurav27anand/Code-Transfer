@@ -1,9 +1,15 @@
-Problem Statement:
-When a Pull Request (PR) is built, and it includes global changes or template modifications, it often impacts a large number of files. Traditionally, the details of these changes are compiled into a single HTML file, which is then uploaded to an accessible location. However, this approach can cause performance issues as the resulting file contains hundreds of thousands of changed lines. Attempting to load this massive HTML file can lead to browser crashes or the page failing to load altogether.
+The Pull Request here provides all the code-level changes. Below is an overview:
 
-Enhancement Implemented:
-To address these performance bottlenecks, the HTML pages are now divided into multiple sections based on projects. If a project contains more than 100 modified files, the changes are further subdivided into parts, with each part containing a maximum of 100 files.
+The compare tool is located in the build tools repository and is invoked using the train.yaml file in the compare_etsfg.
 
-Project Segmentation: Each project will have its own dedicated HTML page.
-File Subdivision: If a project has fewer than 100 modified files, the entire project is contained in one HTML page. If it exceeds 100 files, it is broken down into multiple sections (or parts), each containing no more than 100 files.
-An index or landing page will also be generated, listing all the divided sections and their respective URLs. This landing page will be linked in the PR, replacing the previous single diff URL, allowing for better navigation and performance when reviewing changes.
+The changes include:
+Addition of a new script: diff_split.py:
+
+This script is responsible for generating the HTML formatting seen in the diff page. The diff text file (generated using the diff command, containing all actual diffs in a Linux diff format) is first converted into JSON format (diff.json), which consists of "blocks." Each block represents a single file and contains line-by-line differences within that file.
+The json_splitter function in the script performs the breakdown of diff.json. It traverses the entire file and searches for filenames. It creates a list of projects, adding matched blocks to the corresponding project. After processing all projects, it checks for the number of blocks inside each project’s list. If a list contains more than 100 blocks, subparts are created; otherwise, they remain in a single part.
+Modification of diff2html_formatter:
+
+The formatter has been updated to process different blocks of JSON files and convert them into functioning HTML files. It has also been enhanced to create an index file (landing page) similar to how the previous diff.html file was generated.
+Modification to html_templates:
+
+A new section has been added (get_index_section) that creates the index HTML or landing page. It processes the list of generated files, checking whether each file stands alone or contains subparts. Based on this check, it creates either a list item or a nested list (as demonstrated in the above screenshot).
