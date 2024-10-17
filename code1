@@ -1,26 +1,112 @@
-def analyze_csv(file_path):
-    stage_durations = {}  # To store total time and count of executions per stage
-    
-    with open(file_path, 'r') as file:
+import datetime
+
+def analyze_and_write_csv(input_file_path, output_file_path):
+    stage_durations = {}  # Store total time, count, and failure count for each stage
+    stage_failures = {}
+    build_start_end_times = []  # Store start and end times for each build for gap analysis
+    long_waits = []  # Track builds with long queue times
+
+    csv_rows = []
+
+    with open(input_file_path, 'r') as file:
         lines = file.readlines()
         header = lines[0].strip().split(',')
-        
+
+        # Initialize header for the output CSV
+        output_header = ['BuildNumber', 'QueueWaitTime (secs)', 'TotalBuildTime (secs)']
+        stage_names = [header[i].replace(' Duration', '') for i in range(2, len(header), 2)]
+        for stage_name in stage_names:
+            output_header.append(f'{stage_name}_Duration')
+            output_header.append(f'{stage_name}_Status')
+        output_header.append('BuildFailures')
+        output_header.append('StageVariance')
+
+        csv_rows.append(output_header)
+
+        # Go through each build
         for line in lines[1:]:
             data = line.strip().split(',')
-            for i in range(1, len(data), 2):
+            row = []
+
+            build_number = data[0]  # First column is build number
+            build_start_time_str = data[1]  # Assuming start time is in column 2
+            build_end_time_str = data[-1]   # Assuming end time is in last column
+
+            # Parse start and end times
+            build_start_time = datetime.datetime.strptime(build_start_time_str, '%Y-%m-%d %H:%M:%S')
+            build_end_time = datetime.datetime.strptime(build_end_time_str, '%Y-%m-%d %H:%M:%S')
+            build_start_end_times.append((build_start_time, build_end_time))
+
+            row.append(build_number)  # Add build number
+
+            # Analyze each stage and collect data
+            build_failures = 0
+            total_build_time = (build_end_time - build_start_time).total_seconds()
+            row.append('')  # Queue wait time placeholder (calculated later)
+            row.append(total_build_time)  # Total build time
+
+            for i in range(2, len(data), 2):  # Even indices are durations, odd indices are statuses
                 stage_name = header[i].replace(' Duration', '')
                 stage_duration = data[i]
-                
-                if stage_duration.isdigit():
+                stage_status = data[i + 1]
+
+                if stage_duration.isdigit():  # Ensure it is a valid duration
+                    stage_duration = int(stage_duration)
+
+                    # Track durations
                     if stage_name not in stage_durations:
-                        stage_durations[stage_name] = {'total_time': 0, 'count': 0}
-                    
-                    stage_durations[stage_name]['total_time'] += int(stage_duration)
+                        stage_durations[stage_name] = {'total_time': 0, 'count': 0, 'times': []}
+                    stage_durations[stage_name]['total_time'] += stage_duration
                     stage_durations[stage_name]['count'] += 1
-    
-    # Calculate the average duration per stage
+                    stage_durations[stage_name]['times'].append(stage_duration)
+
+                # Track failures
+                if stage_status not in ['Success', '']:
+                    build_failures += 1
+                    if stage_name not in stage_failures:
+                        stage_failures[stage_name] = 0
+                    stage_failures[stage_name] += 1
+
+                # Append stage duration and status to the row
+                row.append(stage_duration)
+                row.append(stage_status)
+
+            # Append build failures count and placeholder for variance
+            row.append(build_failures)
+            row.append('')  # Variance placeholder, calculated later
+            csv_rows.append(row)
+
+    # Calculate averages, variances and update the rows
     for stage_name, stats in stage_durations.items():
         avg_duration = stats['total_time'] / stats['count']
-        print(f"Average time for {stage_name}: {avg_duration} ms")
+        variance = sum([(x - avg_duration) ** 2 for x in stats['times']]) / stats['count']
 
-analyze_csv('jenkins_build_data.csv')
+        for row in csv_rows[1:]:  # Skip header row
+            build_number = row[0]
+            stage_index = output_header.index(f'{stage_name}_Duration')
+
+            if row[stage_index].isdigit():
+                stage_duration = int(row[stage_index])
+                # Update variance based on the actual duration
+                row[-1] = variance
+
+    # Analyze time gaps between builds
+    for i in range(1, len(build_start_end_times)):
+        prev_end = build_start_end_times[i - 1][1]  # End time of previous build
+        curr_start = build_start_end_times[i][0]    # Start time of current build
+        gap = (curr_start - prev_end).total_seconds()
+
+        # Assuming 10 minutes is a threshold for "long queue time"
+        if gap > 600:
+            long_waits.append((i, gap))
+            csv_rows[i][1] = gap  # Update the queue wait time for this build
+
+    # Write the analysis to the CSV file
+    with open(output_file_path, 'w') as outfile:
+        for row in csv_rows:
+            outfile.write(','.join([str(x) for x in row]) + '\n')
+
+    print(f"Analysis written to {output_file_path}")
+
+# Call the analysis function
+analyze_and_write_csv('jenkins_build_data.csv', 'jenkins_optimized_analysis.csv')
