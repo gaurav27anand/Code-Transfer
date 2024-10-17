@@ -1,15 +1,72 @@
-The Pull Request here provides all the code-level changes. Below is an overview:
+import requests
 
-The compare tool is located in the build tools repository and is invoked using the train.yaml file in the compare_etsfg.
+# Jenkins API details
+jenkins_url = "http://<jenkins-server>/job/<job-name>"
+username = "<your-username>"
+api_token = "<your-api-token>"
+number_of_builds = 200  # Number of builds to check
+start_build_number = <build_number>  # Start from this build number
 
-The changes include:
-Addition of a new script: diff_split.py:
+# CSV file setup
+csv_file = "jenkins_build_data.csv"
+csv_columns = ['Build Number', 'Stage Name', 'Duration (ms)', 'Status']
 
-This script is responsible for generating the HTML formatting seen in the diff page. The diff text file (generated using the diff command, containing all actual diffs in a Linux diff format) is first converted into JSON format (diff.json), which consists of "blocks." Each block represents a single file and contains line-by-line differences within that file.
-The json_splitter function in the script performs the breakdown of diff.json. It traverses the entire file and searches for filenames. It creates a list of projects, adding matched blocks to the corresponding project. After processing all projects, it checks for the number of blocks inside each project’s list. If a list contains more than 100 blocks, subparts are created; otherwise, they remain in a single part.
-Modification of diff2html_formatter:
+def fetch_build_data(build_number):
+    """
+    Fetches details of a Jenkins build, including stages and their durations.
+    """
+    build_url = f"{jenkins_url}/{build_number}/wfapi/describe"
+    response = requests.get(build_url, auth=(username, api_token))
 
-The formatter has been updated to process different blocks of JSON files and convert them into functioning HTML files. It has also been enhanced to create an index file (landing page) similar to how the previous diff.html file was generated.
-Modification to html_templates:
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Failed to retrieve build {build_number}: {response.status_code}")
+        return None
 
-A new section has been added (get_index_section) that creates the index HTML or landing page. It processes the list of generated files, checking whether each file stands alone or contains subparts. Based on this check, it creates either a list item or a nested list (as demonstrated in the above screenshot).
+def write_to_csv(build_data_list):
+    """
+    Writes the collected build data into a CSV file manually (no CSV module).
+    """
+    try:
+        # Open the file in append mode
+        with open(csv_file, 'a') as csvfile:
+            # Write header only once
+            if csvfile.tell() == 0:
+                header = ",".join(csv_columns) + "\n"
+                csvfile.write(header)
+            
+            # Write each build's data
+            for build_data in build_data_list:
+                row = f"{build_data['Build Number']},{build_data['Stage Name']},{build_data['Duration (ms)']},{build_data['Status']}\n"
+                csvfile.write(row)
+        
+        print(f"Data written to {csv_file}")
+    
+    except IOError as e:
+        print(f"Failed to write to CSV file: {e}")
+
+def collect_and_store_build_data(start_build_number, number_of_builds):
+    """
+    Collects build data from Jenkins and writes it to a CSV.
+    """
+    build_data_list = []
+    for build_number in range(start_build_number, start_build_number - number_of_builds, -1):
+        build_data = fetch_build_data(build_number)
+        
+        if build_data:
+            for stage in build_data.get('stages', []):
+                build_info = {
+                    'Build Number': build_number,
+                    'Stage Name': stage['name'],
+                    'Duration (ms)': stage['durationMillis'],
+                    'Status': stage['status']
+                }
+                build_data_list.append(build_info)
+        
+        print(f"Processed build {build_number}")
+    
+    write_to_csv(build_data_list)
+
+# Run the function to collect and store build data
+collect_and_store_build_data(start_build_number, number_of_builds)
