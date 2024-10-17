@@ -1,22 +1,23 @@
 import requests
+from requests_kerberos import HTTPKerberosAuth
 
 # Jenkins API details
 jenkins_url = "http://<jenkins-server>/job/<job-name>"
-username = "<your-username>"
-api_token = "<your-api-token>"
 number_of_builds = 200  # Number of builds to check
 start_build_number = <build_number>  # Start from this build number
 
+# Set up Kerberos authentication
+auth = HTTPKerberosAuth()
+
 # CSV file setup
 csv_file = "jenkins_build_data.csv"
-csv_columns = ['Build Number', 'Stage Name', 'Duration (ms)', 'Status']
 
 def fetch_build_data(build_number):
     """
     Fetches details of a Jenkins build, including stages and their durations.
     """
     build_url = f"{jenkins_url}/{build_number}/wfapi/describe"
-    response = requests.get(build_url, auth=(username, api_token))
+    response = requests.get(build_url, auth=auth)
 
     if response.status_code == 200:
         return response.json()
@@ -24,22 +25,26 @@ def fetch_build_data(build_number):
         print(f"Failed to retrieve build {build_number}: {response.status_code}")
         return None
 
-def write_to_csv(build_data_list):
+def write_to_csv(build_data_list, max_stages):
     """
     Writes the collected build data into a CSV file manually (no CSV module).
+    Each row contains Build Number followed by alternating stage duration and status.
     """
     try:
-        # Open the file in append mode
         with open(csv_file, 'a') as csvfile:
             # Write header only once
             if csvfile.tell() == 0:
-                header = ",".join(csv_columns) + "\n"
-                csvfile.write(header)
+                header = ["Build Number"]
+                for i in range(1, max_stages + 1):
+                    header.extend([f"Stage{i} Duration", f"Stage{i} Status"])
+                csvfile.write(",".join(header) + "\n")
             
             # Write each build's data
             for build_data in build_data_list:
-                row = f"{build_data['Build Number']},{build_data['Stage Name']},{build_data['Duration (ms)']},{build_data['Status']}\n"
-                csvfile.write(row)
+                row = [str(build_data['Build Number'])]
+                for stage in build_data['Stages']:
+                    row.extend([str(stage['durationMillis']), stage['status']])
+                csvfile.write(",".join(row) + "\n")
         
         print(f"Data written to {csv_file}")
     
@@ -51,22 +56,25 @@ def collect_and_store_build_data(start_build_number, number_of_builds):
     Collects build data from Jenkins and writes it to a CSV.
     """
     build_data_list = []
+    max_stages = 0  # Track the maximum number of stages across all builds
+    
     for build_number in range(start_build_number, start_build_number - number_of_builds, -1):
         build_data = fetch_build_data(build_number)
         
         if build_data:
-            for stage in build_data.get('stages', []):
-                build_info = {
-                    'Build Number': build_number,
-                    'Stage Name': stage['name'],
-                    'Duration (ms)': stage['durationMillis'],
-                    'Status': stage['status']
-                }
-                build_data_list.append(build_info)
+            stages = build_data.get('stages', [])
+            stage_list = [{'durationMillis': stage['durationMillis'], 'status': stage['status']} for stage in stages]
+            max_stages = max(max_stages, len(stages))  # Update max_stages
+            
+            build_info = {
+                'Build Number': build_number,
+                'Stages': stage_list
+            }
+            build_data_list.append(build_info)
         
         print(f"Processed build {build_number}")
     
-    write_to_csv(build_data_list)
+    write_to_csv(build_data_list, max_stages)
 
 # Run the function to collect and store build data
 collect_and_store_build_data(start_build_number, number_of_builds)
