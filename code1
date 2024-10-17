@@ -8,10 +8,10 @@ def analyze_build_data(input_file_path, output_file_path):
         header = next(reader)  # Get the header row which should contain actual stage names
 
         # Dynamically create the output header
-        output_header = ['BuildNumber', 'TotalBuildTime', 'LongWaitBetweenBuilds']
+        output_header = ['BuildNumber', 'TotalBuildTime (min)', 'LongWaitBetweenBuilds (min)']
         stage_names = header[1::2]  # Extract stage names (every 2nd column from the 2nd column onwards)
         for stage_name in stage_names:
-            output_header.append(f'{stage_name}_Duration')
+            output_header.append(f'{stage_name}_Duration (min)')
             output_header.append(f'{stage_name}_Status')
         csv_rows.append(output_header)
 
@@ -28,22 +28,24 @@ def analyze_build_data(input_file_path, output_file_path):
                 stage_duration = int(row[i]) if row[i].isdigit() else 0
                 stage_status = row[i + 1]
 
-                total_build_time += stage_duration
-                build_data.append(stage_duration)
+                stage_duration_minutes = stage_duration / 60000  # Convert milliseconds to minutes
+                total_build_time += stage_duration_minutes
+                build_data.append(stage_duration_minutes)
                 build_data.append(stage_status)
 
             # Check for long gaps between builds (if previous end time exists)
             if previous_build_end_time is not None:
                 time_gap = int(build_number) - previous_build_end_time
-                if time_gap > 600000:  # Example threshold of 10 minutes in ms
-                    long_wait = time_gap / 1000  # Convert ms to seconds
+                time_gap_minutes = time_gap / 60000  # Convert milliseconds to minutes
+                if time_gap_minutes > 10:  # Example threshold of 10 minutes
+                    long_wait = time_gap_minutes
                 else:
                     long_wait = ''
             else:
                 long_wait = ''  # No gap for the first build
 
             # Update previous build end time for the next iteration
-            previous_build_end_time = int(build_number) + total_build_time
+            previous_build_end_time = int(build_number) + total_build_time * 60000  # Convert back to ms for next comparison
 
             # Append the total build time and the long wait detection to the build data
             build_data.insert(1, total_build_time)  # Insert total build time after build number
