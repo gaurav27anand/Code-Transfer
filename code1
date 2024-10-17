@@ -1,5 +1,13 @@
 import datetime
 
+def is_valid_datetime(date_str):
+    """Helper function to check if a string matches the expected datetime format."""
+    try:
+        datetime.datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
+        return True
+    except ValueError:
+        return False
+
 def analyze_and_write_csv(input_file_path, output_file_path):
     stage_durations = {}  # Store total time, count, and failure count for each stage
     stage_failures = {}
@@ -32,12 +40,12 @@ def analyze_and_write_csv(input_file_path, output_file_path):
             build_start_time_str = data[1]  # Assuming start time is in column 2
             build_end_time_str = data[-1]   # Assuming end time is in last column
 
-            try:
-                # Parse start and end times
+            # Check if the start and end times are valid datetime strings
+            if is_valid_datetime(build_start_time_str) and is_valid_datetime(build_end_time_str):
                 build_start_time = datetime.datetime.strptime(build_start_time_str, '%Y-%m-%d %H:%M:%S')
                 build_end_time = datetime.datetime.strptime(build_end_time_str, '%Y-%m-%d %H:%M:%S')
-            except ValueError as ve:
-                print(f"Skipping build {build_number} due to invalid date format: {ve}")
+            else:
+                print(f"Skipping build {build_number} due to invalid date format: Start '{build_start_time_str}', End '{build_end_time_str}'")
                 continue  # Skip this row if the format is incorrect
 
             build_start_end_times.append((build_start_time, build_end_time))
