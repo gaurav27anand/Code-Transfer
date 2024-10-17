@@ -2,18 +2,17 @@ import csv
 
 def analyze_build_data(input_file_path, output_file_path):
     csv_rows = []
-    long_waits = []  # Track builds with long queue times
 
     with open(input_file_path, 'r') as file:
         reader = csv.reader(file)
-        header = next(reader)  # Get the header row
+        header = next(reader)  # Get the header row which should contain actual stage names
 
         # Dynamically create the output header
         output_header = ['BuildNumber', 'TotalBuildTime', 'LongWaitBetweenBuilds']
-        stage_count = (len(header) - 1) // 2  # Determine how many stages there are based on the columns
-        for i in range(1, stage_count + 1):
-            output_header.append(f'Stage{i}_Duration')
-            output_header.append(f'Stage{i}_Status')
+        stage_names = header[1::2]  # Extract stage names (every 2nd column from the 2nd column onwards)
+        for stage_name in stage_names:
+            output_header.append(f'{stage_name}_Duration')
+            output_header.append(f'{stage_name}_Status')
         csv_rows.append(output_header)
 
         previous_build_end_time = None  # To calculate the time gap between builds
