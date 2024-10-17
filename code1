@@ -1,87 +1,26 @@
-import requests
-from requests_kerberos import HTTPKerberosAuth
-
-# Jenkins API details
-jenkins_url = "http://<jenkins-server>/job/<job-name>"
-number_of_builds = 200  # Number of builds to check
-start_build_number = <build_number>  # Start from this build number
-
-# Set up Kerberos authentication
-auth = HTTPKerberosAuth()
-
-# CSV file setup
-csv_file = "jenkins_build_data.csv"
-
-def fetch_build_data(build_number):
-    """
-    Fetches details of a Jenkins build, including stages and their durations.
-    """
-    build_url = f"{jenkins_url}/{build_number}/wfapi/describe"
-    response = requests.get(build_url, auth=auth)
-
-    if response.status_code == 200:
-        return response.json()
-    else:
-        print(f"Failed to retrieve build {build_number}: {response.status_code}")
-        return None
-
-def write_to_csv(build_data_list, all_stage_names):
-    """
-    Writes the collected build data into a CSV file manually (no CSV module).
-    Each row contains Build Number followed by alternating stage name, duration, and status.
-    """
-    try:
-        with open(csv_file, 'a') as csvfile:
-            # Write header only once
-            if csvfile.tell() == 0:
-                header = ["Build Number"]
-                for stage_name in all_stage_names:
-                    header.extend([f"{stage_name} Duration", f"{stage_name} Status"])
-                csvfile.write(",".join(header) + "\n")
-            
-            # Write each build's data
-            for build_data in build_data_list:
-                row = [str(build_data['Build Number'])]
-                for stage_name in all_stage_names:
-                    stage_info = next((stage for stage in build_data['Stages'] if stage['name'] == stage_name), None)
-                    if stage_info:
-                        row.extend([str(stage_info['durationMillis']), stage_info['status']])
-                    else:
-                        row.extend(['', ''])  # Empty if stage is not present in this build
-                csvfile.write(",".join(row) + "\n")
+def analyze_csv(file_path):
+    stage_durations = {}  # To store total time and count of executions per stage
+    
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+        header = lines[0].strip().split(',')
         
-        print(f"Data written to {csv_file}")
+        for line in lines[1:]:
+            data = line.strip().split(',')
+            for i in range(1, len(data), 2):
+                stage_name = header[i].replace(' Duration', '')
+                stage_duration = data[i]
+                
+                if stage_duration.isdigit():
+                    if stage_name not in stage_durations:
+                        stage_durations[stage_name] = {'total_time': 0, 'count': 0}
+                    
+                    stage_durations[stage_name]['total_time'] += int(stage_duration)
+                    stage_durations[stage_name]['count'] += 1
     
-    except IOError as e:
-        print(f"Failed to write to CSV file: {e}")
+    # Calculate the average duration per stage
+    for stage_name, stats in stage_durations.items():
+        avg_duration = stats['total_time'] / stats['count']
+        print(f"Average time for {stage_name}: {avg_duration} ms")
 
-def collect_and_store_build_data(start_build_number, number_of_builds):
-    """
-    Collects build data from Jenkins and writes it to a CSV.
-    """
-    build_data_list = []
-    all_stage_names = set()  # Collect unique stage names across all builds
-    
-    for build_number in range(start_build_number, start_build_number - number_of_builds, -1):
-        build_data = fetch_build_data(build_number)
-        
-        if build_data:
-            stages = build_data.get('stages', [])
-            stage_list = [{'name': stage['name'], 'durationMillis': stage['durationMillis'], 'status': stage['status']} for stage in stages]
-            all_stage_names.update(stage['name'] for stage in stages)  # Collect unique stage names
-            
-            build_info = {
-                'Build Number': build_number,
-                'Stages': stage_list
-            }
-            build_data_list.append(build_info)
-        
-        print(f"Processed build {build_number}")
-    
-    # Sort the stage names to ensure consistent order in the CSV
-    all_stage_names = sorted(all_stage_names)
-    
-    write_to_csv(build_data_list, all_stage_names)
-
-# Run the function to collect and store build data
-collect_and_store_build_data(start_build_number, number_of_builds)
+analyze_csv('jenkins_build_data.csv')
