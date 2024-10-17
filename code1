@@ -1,12 +1,12 @@
 import datetime
 
-def is_valid_datetime(date_str):
-    """Helper function to check if a string matches the expected datetime format."""
+def convert_epoch_to_datetime(epoch_ms):
+    """Convert epoch time in milliseconds to a human-readable datetime."""
     try:
-        datetime.datetime.strptime(date_str, '%Y-%m-%d %H:%M:%S')
-        return True
-    except ValueError:
-        return False
+        # Convert milliseconds to seconds (by dividing by 1000) and then to a datetime object
+        return datetime.datetime.fromtimestamp(int(epoch_ms) / 1000)
+    except (ValueError, TypeError):
+        return None  # Return None if there's an issue with the conversion
 
 def analyze_and_write_csv(input_file_path, output_file_path):
     stage_durations = {}  # Store total time, count, and failure count for each stage
@@ -37,18 +37,18 @@ def analyze_and_write_csv(input_file_path, output_file_path):
             row = []
 
             build_number = data[0]  # First column is build number
-            build_start_time_str = data[1]  # Assuming start time is in column 2
-            build_end_time_str = data[-1]   # Assuming end time is in last column
+            build_start_time_str = data[1]  # Assuming start time is in column 2 (in ms)
+            build_end_time_str = data[-1]   # Assuming end time is in the last column (in ms)
 
-            # Check if the start and end times are valid datetime strings
-            if is_valid_datetime(build_start_time_str) and is_valid_datetime(build_end_time_str):
-                build_start_time = datetime.datetime.strptime(build_start_time_str, '%Y-%m-%d %H:%M:%S')
-                build_end_time = datetime.datetime.strptime(build_end_time_str, '%Y-%m-%d %H:%M:%S')
+            # Convert from epoch (milliseconds) to human-readable datetime
+            build_start_time = convert_epoch_to_datetime(build_start_time_str)
+            build_end_time = convert_epoch_to_datetime(build_end_time_str)
+
+            if build_start_time and build_end_time:
+                build_start_end_times.append((build_start_time, build_end_time))
             else:
                 print(f"Skipping build {build_number} due to invalid date format: Start '{build_start_time_str}', End '{build_end_time_str}'")
-                continue  # Skip this row if the format is incorrect
-
-            build_start_end_times.append((build_start_time, build_end_time))
+                continue  # Skip this row if there's an issue with the timestamps
 
             row.append(build_number)  # Add build number
 
