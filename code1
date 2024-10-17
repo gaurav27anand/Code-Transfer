@@ -32,9 +32,14 @@ def analyze_and_write_csv(input_file_path, output_file_path):
             build_start_time_str = data[1]  # Assuming start time is in column 2
             build_end_time_str = data[-1]   # Assuming end time is in last column
 
-            # Parse start and end times
-            build_start_time = datetime.datetime.strptime(build_start_time_str, '%Y-%m-%d %H:%M:%S')
-            build_end_time = datetime.datetime.strptime(build_end_time_str, '%Y-%m-%d %H:%M:%S')
+            try:
+                # Parse start and end times
+                build_start_time = datetime.datetime.strptime(build_start_time_str, '%Y-%m-%d %H:%M:%S')
+                build_end_time = datetime.datetime.strptime(build_end_time_str, '%Y-%m-%d %H:%M:%S')
+            except ValueError as ve:
+                print(f"Skipping build {build_number} due to invalid date format: {ve}")
+                continue  # Skip this row if the format is incorrect
+
             build_start_end_times.append((build_start_time, build_end_time))
 
             row.append(build_number)  # Add build number
