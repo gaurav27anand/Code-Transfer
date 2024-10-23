@@ -1,28 +1,10 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>Available Routes</title>
-</head>
-<body>
-    <h1>Available Routes</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Endpoint</th>
-                <th>Methods</th>
-                <th>URL</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for route in routes %}
-            <tr>
-                <td>{{ route.endpoint }}</td>
-                <td>{{ route.methods }}</td>
-                <td>{{ route.url }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+def list_routes():
+    routes = []
+    for rule in app.url_map.iter_rules():
+        routes.append({
+            'endpoint': rule.endpoint,
+            'methods': ', '.join(rule.methods),
+            'url': rule.rule
+        })
+    
+    return render_template('routes.html', routes=routes)
