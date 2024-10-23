@@ -1,72 +1,19 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>Available Routes</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
+@app.route('/show/<path:subpath>')
+def show_directory_contents(subpath):
+    # Combine the base path with the user-entered path
+    full_path = os.path.join(BASE_PATH, subpath)
 
-        h1 {
-            color: #333;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-
-        th, td {
-            border: 1px solid #dddddd;
-            text-align: left;
-            padding: 8px;
-        }
-
-        th {
-            background-color: #f2f2f2;
-        }
-
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-
-        tr:hover {
-            background-color: #f1f1f1;
-        }
-
-        a {
-            text-decoration: none;
-            color: #007BFF;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-    </style>
-</head>
-<body>
-    <h1>Available Routes</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Endpoint</th>
-                <th>Methods</th>
-                <th>URL</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for route in routes %}
-            <tr>
-                <td>{{ route.endpoint }}</td>
-                <td>{{ route.methods }}</td>
-                <td><a href="{{ url_for(route.endpoint) }}">{{ route.url }}</a></td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    <a href="{{ url_for('index') }}">Back to Home</a>
-</body>
-</html>
+    # Check if the path is a directory
+    if os.path.isdir(full_path):
+        # List the contents of the directory
+        files = os.listdir(full_path)
+        directories = [d for d in files if os.path.isdir(os.path.join(full_path, d))]
+        regular_files = [f for f in files if os.path.isfile(os.path.join(full_path, f))]
+        
+        return render_template('directory.html', 
+                               directories=directories, 
+                               regular_files=regular_files, 
+                               base_path=BASE_PATH, 
+                               subpath=subpath)
+    else:
+        return abort(404)
