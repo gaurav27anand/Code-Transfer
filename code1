@@ -62,7 +62,7 @@
             <tr>
                 <td>{{ route.endpoint }}</td>
                 <td>{{ route.methods }}</td>
-                <td>{{ route.url }}</td>
+                <td><a href="{{ url_for(route.endpoint) }}">{{ route.url }}</a></td>
             </tr>
             {% endfor %}
         </tbody>
