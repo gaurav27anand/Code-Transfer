@@ -1,64 +1,28 @@
-import csv
-
-def analyze_build_data(input_file_path, output_file_path):
-    csv_rows = []
-
-    with open(input_file_path, 'r') as file:
-        reader = csv.reader(file)
-        header = next(reader)  # Get the header row which should contain actual stage names
-
-        # Dynamically create the output header
-        output_header = ['BuildNumber', 'TotalBuildTime (min)', 'LongWaitBetweenBuilds (min)']
-        stage_names = header[1::2]  # Extract stage names (every 2nd column from the 2nd column onwards)
-        for stage_name in stage_names:
-            output_header.append(f'{stage_name}_Duration (min)')
-            output_header.append(f'{stage_name}_Status')
-        csv_rows.append(output_header)
-
-        previous_build_end_time = None  # To calculate the time gap between builds
-
-        # Process each build in the CSV
-        for row in reader:
-            build_number = row[0]
-            total_build_time = 0
-            build_data = [build_number]  # Start building the output row with the build number
-
-            # Process all stages
-            for i in range(1, len(row), 2):  # Process duration/status pairs
-                stage_duration = int(row[i]) if row[i].isdigit() else 0
-                stage_status = row[i + 1]
-
-                stage_duration_minutes = stage_duration / 60000  # Convert milliseconds to minutes
-                total_build_time += stage_duration_minutes
-                build_data.append(stage_duration_minutes)
-                build_data.append(stage_status)
-
-            # Check for long gaps between builds (if previous end time exists)
-            if previous_build_end_time is not None:
-                time_gap = int(build_number) - previous_build_end_time
-                time_gap_minutes = time_gap / 60000  # Convert milliseconds to minutes
-                if time_gap_minutes > 10:  # Example threshold of 10 minutes
-                    long_wait = time_gap_minutes
-                else:
-                    long_wait = ''
-            else:
-                long_wait = ''  # No gap for the first build
-
-            # Update previous build end time for the next iteration
-            previous_build_end_time = int(build_number) + total_build_time * 60000  # Convert back to ms for next comparison
-
-            # Append the total build time and the long wait detection to the build data
-            build_data.insert(1, total_build_time)  # Insert total build time after build number
-            build_data.insert(2, long_wait)  # Insert long wait after total build time
-
-            csv_rows.append(build_data)
-
-    # Write the processed data to a new CSV file
-    with open(output_file_path, 'w', newline='') as outfile:
-        writer = csv.writer(outfile)
-        writer.writerows(csv_rows)
-
-    print(f"Analysis written to {output_file_path}")
-
-# Call the analysis function
-analyze_build_data('jenkins_build_data.csv', 'jenkins_optimized_analysis.csv')
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Available Routes</title>
+</head>
+<body>
+    <h1>Available Routes</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Methods</th>
+                <th>URL</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for route in routes %}
+            <tr>
+                <td>{{ route.endpoint }}</td>
+                <td>{{ route.methods }}</td>
+                <td>{{ route.url }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
