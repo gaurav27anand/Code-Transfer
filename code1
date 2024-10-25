@@ -1,8 +1,16 @@
+import time
+import socket
+import psutil
+from flask import Flask
+from prometheus_flask_exporter import PrometheusMetrics
+
+app = Flask(__name__)
+metrics = PrometheusMetrics(app)
+hostname = socket.gethostname()
 
 # Define metrics with descriptions
 uptime_metric = metrics.info('app_uptime_seconds', 'Uptime of the Flask app in seconds')
-memory_usage_metric = metrics.info('memory_usage_bytes', 'Memory usage of the Flask app in bytes')
-hostname_metric = metrics.info('hostname', 'Hostname of the Flask app')
+memory_usage_metric = metrics.gauge('memory_usage_bytes', 'Memory usage of the Flask app in bytes', labels={'hostname': hostname})
 
 # Track start time for uptime calculation
 start_time = time.time()
@@ -15,5 +23,17 @@ def update_metrics():
 
     # Set metric values
     uptime_metric.set(uptime)
-    memory_usage_metric.set(memory_usage)
-    hostname_metric.set(hostname)
+    memory_usage_metric.labels(hostname=hostname).set(memory_usage)
+
+@app.route('/some-endpoint')
+def some_endpoint():
+    time.sleep(0.5)  # Simulate processing
+    return "Response content"
+
+@app.route('/another-endpoint')
+def another_endpoint():
+    time.sleep(0.3)  # Simulate processing
+    return "Another response content"
+
+if __name__ == "__main__":
+    app.run(port=8000)
