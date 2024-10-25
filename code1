@@ -1,48 +1,16 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <title>Directory Contents</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        h1 {
-            color: #333;
-        }
-        ul {
-            list-style-type: none;
-        }
-        li {
-            margin: 5px 0;
-        }
-        a {
-            text-decoration: none;
-            color: #007BFF;
-        }
-        a:hover {
-            text-decoration: underline;
-        }
-    </style>
-</head>
-<body>
-    <h1>Contents of {{ base_path }}/{{ subpath }}</h1>
-    
-    <h2>Directories:</h2>
-    <ul>
-        {% for directory in directories %}
-        <li><a href="{{ url_for('show_directory_contents', subpath=subpath ~ '/' ~ directory) }}">{{ directory }}</a></li>
-        {% endfor %}
-    </ul>
+# Track uptime and memory usage
+start_time = time.time()
+metrics.info('app_uptime_seconds', 'Uptime of the Flask app in seconds')
+metrics.info('memory_usage_bytes', 'Memory usage of the Flask app in bytes')
+metrics.info('hostname', 'Hostname of the Flask app')
 
-    <h2>Files:</h2>
-    <ul>
-        {% for file in regular_files %}
-        <li><a href="{{ url_for('download_file', filename=subpath ~ '/' ~ file) }}">{{ file }}</a></li>
-        {% endfor %}
-    </ul>
+@app.before_request
+def update_metrics():
+    """Update uptime and memory usage before each request."""
+    uptime = time.time() - start_time
+    memory_usage = psutil.Process().memory_info().rss
 
-    <a href="{{ url_for('index') }}">Back to Home</a>
-</body>
-</html>
+    # Set the metric values
+    metrics.info('app_uptime_seconds').set(uptime)
+    metrics.info('memory_usage_bytes').set(memory_usage)
+    metrics.info('hostname').set(hostname)
