@@ -1,8 +1,11 @@
-# Track uptime and memory usage
+
+# Define metrics with descriptions
+uptime_metric = metrics.info('app_uptime_seconds', 'Uptime of the Flask app in seconds')
+memory_usage_metric = metrics.info('memory_usage_bytes', 'Memory usage of the Flask app in bytes')
+hostname_metric = metrics.info('hostname', 'Hostname of the Flask app')
+
+# Track start time for uptime calculation
 start_time = time.time()
-metrics.info('app_uptime_seconds', 'Uptime of the Flask app in seconds')
-metrics.info('memory_usage_bytes', 'Memory usage of the Flask app in bytes')
-metrics.info('hostname', 'Hostname of the Flask app')
 
 @app.before_request
 def update_metrics():
@@ -10,7 +13,7 @@ def update_metrics():
     uptime = time.time() - start_time
     memory_usage = psutil.Process().memory_info().rss
 
-    # Set the metric values
-    metrics.info('app_uptime_seconds').set(uptime)
-    metrics.info('memory_usage_bytes').set(memory_usage)
-    metrics.info('hostname').set(hostname)
+    # Set metric values
+    uptime_metric.set(uptime)
+    memory_usage_metric.set(memory_usage)
+    hostname_metric.set(hostname)
