@@ -1,43 +1,101 @@
-import time
-import socket
-import psutil
-from flask import Flask
-from prometheus_flask_exporter import PrometheusMetrics
+import os
+from flask import Flask, render_template, abort, send_from_directory
 
 app = Flask(__name__)
-metrics = PrometheusMetrics(app)
-hostname = socket.gethostname()
 
-# Define metrics with descriptions
-uptime_metric = metrics.info('app_uptime_seconds', 'Uptime of the Flask app in seconds')
-memory_usage_metric = metrics.gauge('memory_usage_bytes', 'Memory usage of the Flask app in bytes')
+# Global path for file storage, modify this to your base path
+GLOBAL_PATH = "/abc/xyz/abd"
 
-# Track start time for uptime calculation
-start_time = time.time()
+@app.route("/browse/<path:subpath>", methods=["GET"])
+def browse_directory(subpath=""):
+    # Combine the global base path with the subpath
+    full_path = os.path.join(GLOBAL_PATH, subpath)
 
-@app.before_request
-def update_metrics():
-    """Update uptime and memory usage before each request."""
-    uptime = time.time() - start_time
-    memory_usage = psutil.Process().memory_info().rss
+    # Check if the path exists and is a directory
+    if os.path.isdir(full_path):
+        try:
+            # List all directories and files in the current path
+            directories = [d for d in os.listdir(full_path) if os.path.isdir(os.path.join(full_path, d))]
+            files = [f for f in os.listdir(full_path) if os.path.isfile(os.path.join(full_path, f))]
+        except OSError as e:
+            abort(500, description=f"Error accessing directory: {str(e)}")
 
-    # Set metric values
-    uptime_metric.set(uptime)
-    memory_usage_metric.set(memory_usage)
+        # Render the HTML template for directory navigation
+        return render_template(
+            "browse.html",
+            directories=directories,
+            files=files,
+            current_path=subpath
+        )
+    else:
+        abort(404, description="Directory not found")
 
-@app.route('/some-endpoint')
-def some_endpoint():
-    time.sleep(0.5)  # Simulate processing
-    return "Response content"
+# File download/viewing function
+@app.route("/download/<path:subpath>/<path:filename>", methods=["GET"])
+def download_file(subpath, filename):
+    folder_path = os.path.join(GLOBAL_PATH, subpath)
+    file_path = os.path.join(folder_path, filename)
 
-@app.route('/another-endpoint')
-def another_endpoint():
-    time.sleep(0.3)  # Simulate processing
-    return "Another response content"
+    if os.path.exists(file_path):
+        return send_from_directory(folder_path, filename, as_attachment=False)
+    else:
+        abort(404, description=f"File {filename} not found in {folder_path}")
 
-@app.route('/hostname')
-def get_hostname():
-    return hostname  # Serve hostname as a separate endpoint if needed
 
-if __name__ == "__main__":
-    app.run(port=8000)
+
+
+
+
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Directory Browser</title>
+    <style>
+        table {
+            width: 50%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Directory: {{ current_path }}</h1>
+
+    <h2>Subdirectories</h2>
+    <table>
+        <tr><th>Name</th></tr>
+        {% for directory in directories %}
+            <tr>
+                <td><a href="{{ url_for('browse_directory', subpath=current_path + '/' + directory) }}">{{ directory }}</a></td>
+            </tr>
+        {% endfor %}
+    </table>
+
+    <h2>Files</h2>
+    <table>
+        <tr><th>Name</th></tr>
+        {% for file in files %}
+            <tr>
+                <td><a href="{{ url_for('download_file', subpath=current_path, filename=file) }}">{{ file }}</a></td>
+            </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
