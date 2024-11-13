@@ -1,148 +1,146 @@
 import smtplib
+import matplotlib.pyplot as plt
+import pandas as pd
+from jinja2 import Template
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
+from io import BytesIO
 
-def send_email():
-    # Email configuration
-    sender_email = "your_email@example.com"
-    receiver_email = "receiver_email@example.com"
-    subject = "ETI Observe - Jenkins Weekly Report"
+# Sample Data for Table and Graph
+data = {
+    'Run ID': [123],
+    'Job Name': ['ets-algo-bxs-continuous_pipeline-main'],
+    'Duration': ['5 min'],
+    'Jenkins Link': ['abc']
+}
+
+# Example of Graph Data (Runtimes)
+graph_data = {
+    'Date': pd.date_range(start='2024-11-05', periods=14, freq='D'),
+    'Runtime (minutes)': [20, 15, 18, 10, 25, 12, 14, 19, 17, 13, 22, 18, 15, 20]
+}
+
+# Convert data to pandas DataFrames
+data_df = pd.DataFrame(data)
+graph_df = pd.DataFrame(graph_data)
+
+# Plot the Pipeline Runtimes
+plt.figure(figsize=(10, 5))
+plt.bar(graph_df['Date'].astype(str), graph_df['Runtime (minutes)'], color='green')
+plt.title('Pipeline Runtimes')
+plt.xlabel('Date')
+plt.ylabel('Runtime (minutes)')
+plt.xticks(rotation=45, ha='right')
+plt.tight_layout()
+
+# Save the graph to a BytesIO object
+image_stream = BytesIO()
+plt.savefig(image_stream, format='png')
+image_stream.seek(0)
+
+# HTML Template for the Email
+html_template = """
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .summary-table, .failed-table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .summary-table th, .summary-table td, .failed-table th, .failed-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+        .summary-table th, .failed-table th {
+            background-color: #0073e6;
+            color: white;
+        }
+        .chart {
+            text-align: center;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>ETI Observe</h1>
+    <h2>BXS Pipelines - Jenkins Weekly Report: 5-Nov-24 to 12-Nov-24</h2>
+    <h3>Summary:</h3>
+    <table class="summary-table">
+        <tr>
+            <th>Total Runs</th>
+            <th>Success</th>
+            <th>Failure</th>
+            <th>Success Rate %</th>
+            <th>Max</th>
+            <th>Min</th>
+            <th>Average</th>
+        </tr>
+        <tr>
+            <td>50</td>
+            <td>48</td>
+            <td>2</td>
+            <td>96%</td>
+            <td>25 min</td>
+            <td>5 min</td>
+            <td>15 min</td>
+        </tr>
+    </table>
     
-    # Create the email container (multipart)
-    msg = MIMEMultipart('related')
-    msg['Subject'] = subject
-    msg['From'] = sender_email
-    msg['To'] = receiver_email
+    <div class="chart">
+        <h3>Pipeline Runtimes:</h3>
+        <img src="cid:pipeline_graph" alt="Pipeline Runtimes Graph">
+    </div>
     
-    # HTML content
-    html = """
-    <html>
-    <head>
-        <style>
-            body {
-                font-family: Arial, sans-serif;
-            }
-            .container {
-                max-width: 800px;
-                margin: 0 auto;
-                padding: 20px;
-                border: 1px solid #ccc;
-            }
-            .header {
-                background-color: #0073AA;
-                color: white;
-                padding: 10px;
-                font-size: 24px;
-                font-weight: bold;
-                text-align: left;
-            }
-            .sub-header {
-                background-color: #2F4F4F;
-                color: white;
-                padding: 10px;
-                font-size: 18px;
-                font-weight: bold;
-            }
-            table {
-                width: 100%;
-                border-collapse: collapse;
-                margin: 20px 0;
-            }
-            table, th, td {
-                border: 1px solid #ccc;
-                text-align: center;
-                padding: 8px;
-            }
-            th {
-                background-color: #87CEEB;
-                color: black;
-            }
-            .footer {
-                background-color: #f1f1f1;
-                padding: 10px;
-                text-align: center;
-                font-size: 12px;
-                color: #555;
-            }
-            a {
-                color: #0073AA;
-                text-decoration: none;
-            }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <div class="header">ETI Observe</div>
-            <div class="sub-header">BXS Pipelines - Jenkins Weekly Report : 5-Nov-24 to 12-Nov-24</div>
-            <p><b>Summary:</b></p>
-            <table>
-                <tr>
-                    <th>Total Runs</th>
-                    <th>Success</th>
-                    <th>Failure</th>
-                    <th>Success Rate %</th>
-                    <th>Max</th>
-                    <th>Min</th>
-                    <th>Average</th>
-                </tr>
-                <tr>
-                    <td>50</td>
-                    <td>48</td>
-                    <td>2</td>
-                    <td>96%</td>
-                    <td>25 min</td>
-                    <td>5 min</td>
-                    <td>15 min</td>
-                </tr>
-            </table>
-            <p><b>Pipeline Runtimes:</b></p>
-            <img src="cid:image1" alt="Pipeline Runtimes" style="width:100%;height:auto;"/>
+    <h3>List of Failed Runs:</h3>
+    <table class="failed-table">
+        <tr>
+            <th>Run ID</th>
+            <th>Job Name</th>
+            <th>Duration</th>
+            <th>Jenkins Link</th>
+        </tr>
+        {% for row in data %}
+        <tr>
+            <td>{{ row['Run ID'] }}</td>
+            <td>{{ row['Job Name'] }}</td>
+            <td>{{ row['Duration'] }}</td>
+            <td><a href="{{ row['Jenkins Link'] }}">Link</a></td>
+        </tr>
+        {% endfor %}
+    </table>
+    
+    <p>For more details, visit <a href="https://example.com">Jeye</a></p>
+</body>
+</html>
+"""
 
-            <p><b>List of Failed Runs:</b></p>
-            <table>
-                <tr>
-                    <th>Run ID</th>
-                    <th>Job Name</th>
-                    <th>Duration</th>
-                    <th>Jenkins Link</th>
-                </tr>
-                <tr>
-                    <td>123</td>
-                    <td>ets-algo-bxs-continuous_pipeline-main</td>
-                    <td>5 min</td>
-                    <td><a href="abc">abc</a></td>
-                </tr>
-            </table>
+# Render HTML with Jinja2
+template = Template(html_template)
+html_content = template.render(data=data_df.to_dict(orient='records'))
 
-            <p>For more details, visit <a href="link-to-jeye">Jeye</a></p>
-        </div>
-        <div class="footer">
-            This alert is brought to you by Buildinfra Reports. Refer <a href="#">FAQ</a> & <a href="#">Active Alerts</a> for more details.
-            <br>
-            <a href="#">J-eye</a> | <a href="#">H-eye</a> | <a href="#">Monorepo-Jive</a> | <a href="#">Contact us</a>
-        </div>
-    </body>
-    </html>
-    """
+# Create Email
+msg = MIMEMultipart('related')
+msg['Subject'] = 'ETI Observe - Jenkins Weekly Report'
+msg['From'] = 'your_email@example.com'
+msg['To'] = 'recipient@example.com'
 
-    # Attach HTML content to the email
-    msg.attach(MIMEText(html, 'html'))
+# Attach HTML Content
+html_part = MIMEText(html_content, 'html')
+msg.attach(html_part)
 
-    # If you have an image, you can attach it like this:
-    # with open('pipeline_runtimes.png', 'rb') as img:
-    #     mime_image = MIMEImage(img.read())
-    #     mime_image.add_header('Content-ID', '<image1>')
-    #     msg.attach(mime_image)
+# Attach Image
+img = MIMEImage(image_stream.read())
+img.add_header('Content-ID', '<pipeline_graph>')
+msg.attach(img)
 
-    # Send the email
-    try:
-        with smtplib.SMTP('smtp.example.com', 587) as server:
-            server.starttls()
-            server.login('your_email@example.com', 'your_password')
-            server.sendmail(sender_email, receiver_email, msg.as_string())
-        print("Email sent successfully!")
-    except Exception as e:
-        print(f"Failed to send email: {e}")
-
-send_email()
+# Send Email
+smtp = smtplib.SMTP('smtp.example.com', 587)  # Use your SMTP server details
+smtp.starttls()
+smtp.login('your_email@example.com', 'your_password')
+smtp.sendmail('your_email@example.com', 'recipient@example.com', msg.as_string())
+smtp.quit()
