@@ -1,87 +1,28 @@
-Here’s a more polished and professional version of your document:
+pipeline {
+    agent any
 
----
-
-**Background:**
-
-We have several static HTML pages hosted on a specific NFS location that need to be accessed like web pages. Currently, we are using NFSWEB to serve these files. Some examples include:
-
-- ETSCFG Diff Report
-- HEYE
-- Other browsing content on the same NFS location
-
-**Problem:**
-
-As NFSWEB will be decommissioned by the end of 2024, we require an alternative to host our HTML pages.
-
-**Solution:**
-
-The proposed solution is to deploy an equivalent to NFSWEB using Flask. A Flask server will be set up to run on Treadmill containers. Since the data resides in two separate NFS locations — one in the EU (Global NFS) and another in NA (NA NFS) — we will need two instances of the Flask server to serve the content from each region.
-
-**URLs:**
-- [URLs for Flask server to be provided]
-
----
-
-### **Implementation:**
-
-**Step 1: Flask Server Setup**
-
-The Flask server must fulfill two primary requirements:
-1. **Serve ETSCFG Diff Reports**
-2. **Serve HEYE content** for:
-   - heye
-   - heye2m, heye3m, heyefull
-
-Additionally, the server must provide the following metrics for Prometheus:
-- **Number of Requests**
-- **Uptime**
-- **Memory Usage**
-
-These metrics can be accessed at the `{URL}/metrics` endpoint.
-
-The Flask script is located in the Build Tools repository, equipped with all necessary tools for smooth operation. The server is designed to serve different files based on the region:
-- If running in the EU region, the server will show only ETSCFG diffs.
-- If running in the NA region, it will display HEYE along with ETSCFG diffs.
-  
-Other content can be dynamically added in the future as needed.
-
----
-
-**Step 2: Hosting the Flask Server**
-
-To deploy the Flask server in two regions, we are using Treadmill containers. Two manifest files are created: one for the EU region and one for the NA region. The difference between these manifests lies in the mounting of the NFS location for each region. The Flask server will have a minimum of 10GB of memory, which can be increased or decreased based on the requirements specified in the manifest.
-
----
-
-**Step 3: Load Balancer Setup**
-
-To ensure proper distribution and redundancy of requests, we are deploying two instances of the Flask server at each region (EU and NA). Given that the containers are dynamic and may change upon each restart, a load balancer is necessary to route traffic effectively.
-
-To manage this, we created an endpoint service for each region’s Flask server, which is as follows:
-
-| **Name**              | **Endpoint** | **Cell** | **Apps**             |
-|-----------------------|--------------|----------|----------------------|
-| zeit_na_nfs_hoster.http | http         | dz       | zeit_na_nfs_hoster    |
-| zeit_eu_nfs_hoster.http | http         | oz       | zeit_eu_nfs_hoster    |
-
-Once configured, the load balancer is tied to a subscription name derived from the above. A keytab is created to ensure that each new instance launched automatically gets attached to the load balancer.
-
----
-
-**Step 4: Server Management**
-
-To efficiently manage the Flask server instances, we’ve developed several scripts:
-
-- **Start Script**: This script will configure and launch the containers based on the specified manifest. It will also set up monitoring to ensure that the number of running instances stays constant (default: 2). The monitor will automatically restart instances if needed.
-  
-- **Stop Script**: This script will kill the containers if necessary. The monitor will also be cleared after shutdown, ensuring no stale configuration is kept.
-
-- **Check Script**: This performs a simple check to ensure that at least one instance is running in each region.
-
-By automating this process, we can ensure that the Flask server remains highly available and responsive across both regions.
-
----
-
-This setup will allow us to host and serve the required static HTML pages effectively, while ensuring scalability and redundancy across both EU and NA regions.
-
+    stages {
+        stage('Example Stage') {
+            steps {
+                script {
+                    try {
+                        // Run the command and check the exit status
+                        def result = sh(script: 'your-command-here', returnStatus: true)
+                        if (result != 0) {
+                            // Command failed, send Harmony notification for failure
+                            harmonySend message: "Step failed with exit code: ${result}", status: 'FAILED'
+                            error("Step failed")  // To make the pipeline step fail
+                        } else {
+                            // Command succeeded, send Harmony notification for success
+                            harmonySend message: "Step succeeded.", status: 'SUCCESS'
+                        }
+                    } catch (Exception e) {
+                        // In case of any unexpected error
+                        harmonySend message: "Unexpected error occurred: ${e.message}", status: 'FAILED'
+                        throw e
+                    }
+                }
+            }
+        }
+    }
+}
