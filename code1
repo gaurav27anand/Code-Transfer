@@ -1,45 +1,3 @@
-import smtplib
-import matplotlib.pyplot as plt
-import pandas as pd
-from jinja2 import Template
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from io import BytesIO
-
-# Sample Data for Table and Graph
-data = {
-    'Run ID': [123],
-    'Job Name': ['ets-algo-bxs-continuous_pipeline-main'],
-    'Duration': ['5 min'],
-    'Jenkins Link': ['abc']
-}
-
-# Example of Graph Data (Runtimes)
-graph_data = {
-    'Date': pd.date_range(start='2024-11-05', periods=14, freq='D'),
-    'Runtime (minutes)': [20, 15, 18, 10, 25, 12, 14, 19, 17, 13, 22, 18, 15, 20]
-}
-
-# Convert data to pandas DataFrames
-data_df = pd.DataFrame(data)
-graph_df = pd.DataFrame(graph_data)
-
-# Plot the Pipeline Runtimes
-plt.figure(figsize=(10, 5))
-plt.bar(graph_df['Date'].astype(str), graph_df['Runtime (minutes)'], color='green')
-plt.title('Pipeline Runtimes')
-plt.xlabel('Date')
-plt.ylabel('Runtime (minutes)')
-plt.xticks(rotation=45, ha='right')
-plt.tight_layout()
-
-# Save the graph to a BytesIO object
-image_stream = BytesIO()
-plt.savefig(image_stream, format='png')
-image_stream.seek(0)
-
-# HTML Template for the Email
 html_template = """
 <!DOCTYPE html>
 <html>
@@ -48,27 +6,52 @@ html_template = """
         body {
             font-family: Arial, sans-serif;
         }
+        .header {
+            background-color: #005fa3;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .sub-header {
+            background-color: #2e4a62;
+            color: #f2f2f2;
+            padding: 5px 10px;
+            font-size: 18px;
+        }
+        h3 {
+            color: #333;
+        }
         .summary-table, .failed-table {
             border-collapse: collapse;
             width: 100%;
+            margin-top: 20px;
         }
         .summary-table th, .summary-table td, .failed-table th, .failed-table td {
             border: 1px solid #ddd;
             padding: 8px;
+            text-align: center;
         }
         .summary-table th, .failed-table th {
-            background-color: #0073e6;
+            background-color: #66a2cc;
             color: white;
+        }
+        .summary-table tr:nth-child(even), .failed-table tr:nth-child(even) {
+            background-color: #f9f9f9;
         }
         .chart {
             text-align: center;
             margin: 20px 0;
         }
+        a {
+            color: #005fa3;
+        }
     </style>
 </head>
 <body>
-    <h1>ETI Observe</h1>
-    <h2>BXS Pipelines - Jenkins Weekly Report: 5-Nov-24 to 12-Nov-24</h2>
+    <div class="header">ETI Observe</div>
+    <div class="sub-header">BXS Pipelines - Jenkins Weekly Report: 5-Nov-24 to 12-Nov-24</div>
     <h3>Summary:</h3>
     <table class="summary-table">
         <tr>
@@ -117,30 +100,3 @@ html_template = """
     <p>For more details, visit <a href="https://example.com">Jeye</a></p>
 </body>
 </html>
-"""
-
-# Render HTML with Jinja2
-template = Template(html_template)
-html_content = template.render(data=data_df.to_dict(orient='records'))
-
-# Create Email
-msg = MIMEMultipart('related')
-msg['Subject'] = 'ETI Observe - Jenkins Weekly Report'
-msg['From'] = 'your_email@example.com'
-msg['To'] = 'recipient@example.com'
-
-# Attach HTML Content
-html_part = MIMEText(html_content, 'html')
-msg.attach(html_part)
-
-# Attach Image
-img = MIMEImage(image_stream.read())
-img.add_header('Content-ID', '<pipeline_graph>')
-msg.attach(img)
-
-# Send Email
-smtp = smtplib.SMTP('smtp.example.com', 587)  # Use your SMTP server details
-smtp.starttls()
-smtp.login('your_email@example.com', 'your_password')
-smtp.sendmail('your_email@example.com', 'recipient@example.com', msg.as_string())
-smtp.quit()
