@@ -1,15 +1,39 @@
+import pandas as pd
 import plotly.graph_objects as go
 
-# Create a bar chart to display successful and failed runs
+# Sample Data (replace with your actual data)
+data = [
+    ('123', 'abc', 'SUCCESS', 123455),
+    ('124', 'def', 'FAILURE', 234567),
+    # Add more tuples as needed
+]
+
+# Creating a DataFrame from the list
+df = pd.DataFrame(data, columns=['runID', 'pipeline_name', 'result', 'durationinmillis'])
+df['duration_in_minutes'] = df['durationinmillis'] / (60 * 1000)
+
+# Define the base URL
+base_url = "http://yourbaseurl.com/run-details?runID="  # Replace with your actual base URL
+
+# Generate the URLs for each runID
+df['run_link'] = base_url + df['runID']
+
+# Create a bar chart with Plotly
 colors = ['green' if result == 'SUCCESS' else 'red' for result in df['result']]
+
+# Modify hover text to include HTML links
+hover_text = [
+    f'<a href="{url}">Run ID: {runID}</a><br>Pipeline Name: {pipeline}<br>Duration: {duration:.2f} min<br>Status: {status}'
+    for runID, pipeline, status, duration, url in zip(df['runID'], df['pipeline_name'], df['result'], df['duration_in_minutes'], df['run_link'])
+]
 
 fig = go.Figure(data=[
     go.Bar(
         x=df['runID'],
         y=df['duration_in_minutes'],
         marker_color=colors,
-        text=df['result'],
-        hoverinfo='text+y'
+        hoverinfo='text',
+        text=hover_text  # Adding the custom hover text with links
     )
 ])
 
@@ -21,5 +45,6 @@ fig.update_layout(
     barmode='group'
 )
 
-# Display the chart
-fig.show()
+# Save the graph to an HTML snippet with embedded links
+graph_html = 'pipeline_runtime_graph.html'
+fig.write_html(graph_html)
