@@ -1,20 +1,7 @@
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from sqlalchemy import create_engine
 
-# Replace with your actual database connection string
-DATABASE_URI = 'sqlite:///your_database.db'  # Example for SQLite, adjust if using a different database
-engine = create_engine(DATABASE_URI)
-
-# SQL query to get all data from the view
-query = """
-    SELECT runID, pipeline_name, result, durationinmillis
-    FROM your_view_name;
-"""
-
-# Load data into a DataFrame
-df = pd.read_sql(query, engine)
+# Creating a DataFrame from the list
+df = pd.DataFrame(data, columns=['runID', 'pipeline_name', 'result', 'durationinmillis'])
 
 # Convert duration from milliseconds to minutes for better readability
 df['duration_in_minutes'] = df['durationinmillis'] / (60 * 1000)
@@ -28,41 +15,11 @@ number_of_success = len(df[df['result'] == 'SUCCESS'])
 number_of_failures = len(df[df['result'] == 'FAILURE'])
 success_rate = (number_of_success / total_runs) * 100
 
-# Display Metrics
+# Display the calculated metrics
 print(f"Total Runs: {total_runs}")
 print(f"Max Runtime: {max_runtime:.2f} min")
 print(f"Min Runtime: {min_runtime:.2f} min")
 print(f"Average Runtime: {average_runtime:.2f} min")
-print(f"Number of Successes: {number_of_success}")
+print(f"Number of Success: {number_of_success}")
 print(f"Number of Failures: {number_of_failures}")
 print(f"Success Rate: {success_rate:.2f}%")
-
-# List of Failed Runs
-failed_runs = df[df['result'] == 'FAILURE'][['runID', 'pipeline_name', 'duration_in_minutes']]
-print("\nList of Failed Runs:")
-print(failed_runs)
-
-# Generate Pipeline Runtime Graph using Plotly
-fig = go.Figure()
-
-# Add bars for each run (green for success, red for failure)
-for index, row in df.iterrows():
-    color = 'green' if row['result'] == 'SUCCESS' else 'red'
-    fig.add_trace(go.Bar(
-        x=[row['runID']],
-        y=[row['duration_in_minutes']],
-        name=row['result'],
-        marker_color=color
-    ))
-
-# Update layout
-fig.update_layout(
-    title="Pipeline Runtimes: Green = Success, Red = Failure",
-    xaxis_title="Run ID",
-    yaxis_title="Runtime (minutes)",
-    xaxis=dict(type='category'),  # Treat x-axis as categorical data
-    showlegend=False
-)
-
-# Show graph in a browser
-fig.show()
