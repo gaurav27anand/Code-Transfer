@@ -1,5 +1,6 @@
 import pandas as pd
-import matplotlib.pyplot as plt
+import plotly.express as px
+import plotly.graph_objects as go
 from sqlalchemy import create_engine
 
 # Replace with your actual database connection string
@@ -41,24 +42,27 @@ failed_runs = df[df['result'] == 'FAILURE'][['runID', 'pipeline_name', 'duration
 print("\nList of Failed Runs:")
 print(failed_runs)
 
-# Generate Pipeline Runtime Graph
-plt.figure(figsize=(12, 8))
+# Generate Pipeline Runtime Graph using Plotly
+fig = go.Figure()
 
-# Color coding: Green for 'SUCCESS' and Red for 'FAILURE'
-colors = df['result'].apply(lambda x: 'green' if x == 'SUCCESS' else 'red')
+# Add bars for each run (green for success, red for failure)
+for index, row in df.iterrows():
+    color = 'green' if row['result'] == 'SUCCESS' else 'red'
+    fig.add_trace(go.Bar(
+        x=[row['runID']],
+        y=[row['duration_in_minutes']],
+        name=row['result'],
+        marker_color=color
+    ))
 
-# Bar plot for runtimes
-plt.bar(df['runID'], df['duration_in_minutes'], color=colors)
+# Update layout
+fig.update_layout(
+    title="Pipeline Runtimes: Green = Success, Red = Failure",
+    xaxis_title="Run ID",
+    yaxis_title="Runtime (minutes)",
+    xaxis=dict(type='category'),  # Treat x-axis as categorical data
+    showlegend=False
+)
 
-# Labels and Title
-plt.xlabel('Run ID')
-plt.ylabel('Runtime (minutes)')
-plt.title('Pipeline Runtimes: Green = Success, Red = Failure')
-plt.xticks(rotation=90)  # Rotate x-axis labels for better visibility
-plt.tight_layout()
-
-# Save the graph to a file
-plt.savefig('pipeline_runtime_graph.png')
-
-# Show the graph
-plt.show()
+# Show graph in a browser
+fig.show()
