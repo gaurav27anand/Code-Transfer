@@ -1,50 +1,8 @@
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.image import MIMEImage
-from email.mime.base import MIMEBase
-from email import encoders
-
-# Sample email configuration
-sender_email = "youremail@example.com"
-receiver_email = "recipient@example.com"
-subject = "Pipeline Runtimes with Image Attachment"
-smtp_server = "smtp.example.com"
-smtp_port = 587
-password = "yourpassword"
-
-# Generate the Plotly image and save it locally
-fig.write_image("pipeline_runtimes.png")
-
-# Create email message
-msg = MIMEMultipart()
-msg['From'] = sender_email
-msg['To'] = receiver_email
-msg['Subject'] = subject
-
-# Add the HTML body with a reference to the Content-ID
-html_body = """
-<html>
-<head></head>
-<body>
-    <h2>Pipeline Runtimes</h2>
-    <img src="cid:pipeline_runtimes" alt="Pipeline Runtimes" style="width: 100%; height: auto;">
-    <!-- Other email content here -->
-</body>
-</html>
-"""
-
-msg.attach(MIMEText(html_body, 'html'))
-
-# Attach the image
-with open("pipeline_runtimes.png", "rb") as image_file:
-    image = MIMEImage(image_file.read())
-    image.add_header('Content-ID', '<pipeline_runtimes>')
-    image.add_header('Content-Disposition', 'inline', filename="pipeline_runtimes.png")
-    msg.attach(image)
-
-# Send the email
-with smtplib.SMTP(smtp_server, smtp_port) as server:
-    server.starttls()
-    server.login(sender_email, password)
-    server.sendmail(sender_email, receiver_email, msg.as_string())
+# Attach the image using MIMEBase for more control
+with open("pipeline_runtimes.png", "rb") as file:
+    part = MIMEBase('application', 'octet-stream')
+    part.set_payload(file.read())
+    encoders.encode_base64(part)
+    part.add_header('Content-Disposition', 'inline', filename="pipeline_runtimes.png")
+    part.add_header('Content-ID', '<pipeline_runtimes>')
+    msg.attach(part)
