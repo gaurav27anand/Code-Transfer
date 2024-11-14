@@ -1,66 +1,55 @@
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import plotly.graph_objects as go
+import pandas as pd
+import base64
+from io import BytesIO
 
-# Read the graph's HTML snippet
-with open(graph_html, 'r') as file:
-    graph_content = file.read()
+# Sample data (replace with your actual data)
+pipeline_data = {
+    'timestamp': ['5-Nov', '6-Nov', '7-Nov', '8-Nov', '9-Nov', '10-Nov', '11-Nov', '12-Nov'],
+    'duration': [25, 15, 20, 30, 18, 22, 27, 15],
+    'status': ['success', 'success', 'failure', 'success', 'failure', 'success', 'success', 'success']
+}
+df = pd.DataFrame(pipeline_data)
 
-# Create email message
-email_from = "your_email@example.com"
-email_to = "recipient_email@example.com"
-subject = "Pipeline Report with Embedded Graph"
+# Create colors for the bars based on the status
+colors = ['green' if status == 'success' else 'red' for status in df['status']]
 
-# Create the HTML email content
+# Generate the Plotly bar graph
+fig = go.Figure(data=[
+    go.Bar(
+        x=df['timestamp'],
+        y=df['duration'],
+        marker_color=colors,
+        text=df['status'],
+        hoverinfo='text+y'
+    )
+])
+
+fig.update_layout(
+    title='Pipeline Runtimes',
+    xaxis_title='Date',
+    yaxis_title='Duration (Minutes)',
+    showlegend=False
+)
+
+# Save the figure as an image
+image_bytes = fig.to_image(format="png")
+
+# Encode the image to base64
+image_base64 = base64.b64encode(image_bytes).decode('utf-8')
+
+# HTML content for the email with the embedded image
 html_content = f"""
 <html>
-<head>
-    <style>
-        /* Add custom styles if needed */
-    </style>
-</head>
+<head></head>
 <body>
-    <h2>Pipeline Report</h2>
-    <h3>Summary:</h3>
-    <table border="1">
-        <tr>
-            <th>Total Runs</th>
-            <th>Success</th>
-            <th>Failure</th>
-            <th>Success Rate (%)</th>
-            <th>Max Runtime (min)</th>
-            <th>Min Runtime (min)</th>
-            <th>Average Runtime (min)</th>
-        </tr>
-        <tr>
-            <td>{len(df)}</td>
-            <td>{len(df[df['result'] == 'SUCCESS'])}</td>
-            <td>{len(df[df['result'] == 'FAILURE'])}</td>
-            <td>{(len(df[df['result'] == 'SUCCESS']) / len(df)) * 100:.2f}</td>
-            <td>{df['duration_in_minutes'].max():.2f}</td>
-            <td>{df['duration_in_minutes'].min():.2f}</td>
-            <td>{df['duration_in_minutes'].mean():.2f}</td>
-        </tr>
-    </table>
-    <h3>Pipeline Runtime Graph:</h3>
-    {graph_content} <!-- Embedding the graph content -->
+    <h2>Pipeline Runtimes</h2>
+    <img src="data:image/png;base64,{image_base64}" alt="Pipeline Runtimes" style="width: 100%; height: auto;">
+    <!-- Other email content here -->
 </body>
 </html>
 """
 
-# Set up the email
-message = MIMEMultipart("alternative")
-message["From"] = email_from
-message["To"] = email_to
-message["Subject"] = subject
-
-# Attach the HTML content
-message.attach(MIMEText(html_content, "html"))
-
-# Send the email
-with smtplib.SMTP("smtp.example.com", 587) as server:  # Update your SMTP server and port
-    server.starttls()
-    server.login("your_email@example.com", "your_password")
-    server.sendmail(email_from, email_to, message.as_string())
-
-print("Email sent successfully!")
+# Now, `html_content` contains the image as Base64 embedded.
+# You can use it in the email body directly.
+print(html_content)
