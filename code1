@@ -1,55 +1,50 @@
-import plotly.graph_objects as go
-import pandas as pd
-import base64
-from io import BytesIO
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
+from email.mime.base import MIMEBase
+from email import encoders
 
-# Sample data (replace with your actual data)
-pipeline_data = {
-    'timestamp': ['5-Nov', '6-Nov', '7-Nov', '8-Nov', '9-Nov', '10-Nov', '11-Nov', '12-Nov'],
-    'duration': [25, 15, 20, 30, 18, 22, 27, 15],
-    'status': ['success', 'success', 'failure', 'success', 'failure', 'success', 'success', 'success']
-}
-df = pd.DataFrame(pipeline_data)
+# Sample email configuration
+sender_email = "youremail@example.com"
+receiver_email = "recipient@example.com"
+subject = "Pipeline Runtimes with Image Attachment"
+smtp_server = "smtp.example.com"
+smtp_port = 587
+password = "yourpassword"
 
-# Create colors for the bars based on the status
-colors = ['green' if status == 'success' else 'red' for status in df['status']]
+# Generate the Plotly image and save it locally
+fig.write_image("pipeline_runtimes.png")
 
-# Generate the Plotly bar graph
-fig = go.Figure(data=[
-    go.Bar(
-        x=df['timestamp'],
-        y=df['duration'],
-        marker_color=colors,
-        text=df['status'],
-        hoverinfo='text+y'
-    )
-])
+# Create email message
+msg = MIMEMultipart()
+msg['From'] = sender_email
+msg['To'] = receiver_email
+msg['Subject'] = subject
 
-fig.update_layout(
-    title='Pipeline Runtimes',
-    xaxis_title='Date',
-    yaxis_title='Duration (Minutes)',
-    showlegend=False
-)
-
-# Save the figure as an image
-image_bytes = fig.to_image(format="png")
-
-# Encode the image to base64
-image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-
-# HTML content for the email with the embedded image
-html_content = f"""
+# Add the HTML body with a reference to the Content-ID
+html_body = """
 <html>
 <head></head>
 <body>
     <h2>Pipeline Runtimes</h2>
-    <img src="data:image/png;base64,{image_base64}" alt="Pipeline Runtimes" style="width: 100%; height: auto;">
+    <img src="cid:pipeline_runtimes" alt="Pipeline Runtimes" style="width: 100%; height: auto;">
     <!-- Other email content here -->
 </body>
 </html>
 """
 
-# Now, `html_content` contains the image as Base64 embedded.
-# You can use it in the email body directly.
-print(html_content)
+msg.attach(MIMEText(html_body, 'html'))
+
+# Attach the image
+with open("pipeline_runtimes.png", "rb") as image_file:
+    image = MIMEImage(image_file.read())
+    image.add_header('Content-ID', '<pipeline_runtimes>')
+    image.add_header('Content-Disposition', 'inline', filename="pipeline_runtimes.png")
+    msg.attach(image)
+
+# Send the email
+with smtplib.SMTP(smtp_server, smtp_port) as server:
+    server.starttls()
+    server.login(sender_email, password)
+    server.sendmail(sender_email, receiver_email, msg.as_string())
