@@ -1,102 +1,64 @@
-html_template = """
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .header {
-            background-color: #005fa3;
-            color: white;
-            padding: 10px;
-            text-align: center;
-            font-size: 24px;
-            font-weight: bold;
-        }
-        .sub-header {
-            background-color: #2e4a62;
-            color: #f2f2f2;
-            padding: 5px 10px;
-            font-size: 18px;
-        }
-        h3 {
-            color: #333;
-        }
-        .summary-table, .failed-table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 20px;
-        }
-        .summary-table th, .summary-table td, .failed-table th, .failed-table td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        .summary-table th, .failed-table th {
-            background-color: #66a2cc;
-            color: white;
-        }
-        .summary-table tr:nth-child(even), .failed-table tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        .chart {
-            text-align: center;
-            margin: 20px 0;
-        }
-        a {
-            color: #005fa3;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">ETI Observe</div>
-    <div class="sub-header">BXS Pipelines - Jenkins Weekly Report: 5-Nov-24 to 12-Nov-24</div>
-    <h3>Summary:</h3>
-    <table class="summary-table">
-        <tr>
-            <th>Total Runs</th>
-            <th>Success</th>
-            <th>Failure</th>
-            <th>Success Rate %</th>
-            <th>Max</th>
-            <th>Min</th>
-            <th>Average</th>
-        </tr>
-        <tr>
-            <td>50</td>
-            <td>48</td>
-            <td>2</td>
-            <td>96%</td>
-            <td>25 min</td>
-            <td>5 min</td>
-            <td>15 min</td>
-        </tr>
-    </table>
-    
-    <div class="chart">
-        <h3>Pipeline Runtimes:</h3>
-        <img src="cid:pipeline_graph" alt="Pipeline Runtimes Graph">
-    </div>
-    
-    <h3>List of Failed Runs:</h3>
-    <table class="failed-table">
-        <tr>
-            <th>Run ID</th>
-            <th>Job Name</th>
-            <th>Duration</th>
-            <th>Jenkins Link</th>
-        </tr>
-        {% for row in data %}
-        <tr>
-            <td>{{ row['Run ID'] }}</td>
-            <td>{{ row['Job Name'] }}</td>
-            <td>{{ row['Duration'] }}</td>
-            <td><a href="{{ row['Jenkins Link'] }}">Link</a></td>
-        </tr>
-        {% endfor %}
-    </table>
-    
-    <p>For more details, visit <a href="https://example.com">Jeye</a></p>
-</body>
-</html>
+import pandas as pd
+import matplotlib.pyplot as plt
+from sqlalchemy import create_engine
+
+# Replace with your actual database connection string
+DATABASE_URI = 'sqlite:///your_database.db'  # Example for SQLite, adjust if using a different database
+engine = create_engine(DATABASE_URI)
+
+# SQL query to get all data from the view
+query = """
+    SELECT runID, pipeline_name, result, durationinmillis
+    FROM your_view_name;
+"""
+
+# Load data into a DataFrame
+df = pd.read_sql(query, engine)
+
+# Convert duration from milliseconds to minutes for better readability
+df['duration_in_minutes'] = df['durationinmillis'] / (60 * 1000)
+
+# Calculate Metrics
+total_runs = len(df)
+max_runtime = df['duration_in_minutes'].max()
+min_runtime = df['duration_in_minutes'].min()
+average_runtime = df['duration_in_minutes'].mean()
+number_of_success = len(df[df['result'] == 'SUCCESS'])
+number_of_failures = len(df[df['result'] == 'FAILURE'])
+success_rate = (number_of_success / total_runs) * 100
+
+# Display Metrics
+print(f"Total Runs: {total_runs}")
+print(f"Max Runtime: {max_runtime:.2f} min")
+print(f"Min Runtime: {min_runtime:.2f} min")
+print(f"Average Runtime: {average_runtime:.2f} min")
+print(f"Number of Successes: {number_of_success}")
+print(f"Number of Failures: {number_of_failures}")
+print(f"Success Rate: {success_rate:.2f}%")
+
+# List of Failed Runs
+failed_runs = df[df['result'] == 'FAILURE'][['runID', 'pipeline_name', 'duration_in_minutes']]
+print("\nList of Failed Runs:")
+print(failed_runs)
+
+# Generate Pipeline Runtime Graph
+plt.figure(figsize=(12, 8))
+
+# Color coding: Green for 'SUCCESS' and Red for 'FAILURE'
+colors = df['result'].apply(lambda x: 'green' if x == 'SUCCESS' else 'red')
+
+# Bar plot for runtimes
+plt.bar(df['runID'], df['duration_in_minutes'], color=colors)
+
+# Labels and Title
+plt.xlabel('Run ID')
+plt.ylabel('Runtime (minutes)')
+plt.title('Pipeline Runtimes: Green = Success, Red = Failure')
+plt.xticks(rotation=90)  # Rotate x-axis labels for better visibility
+plt.tight_layout()
+
+# Save the graph to a file
+plt.savefig('pipeline_runtime_graph.png')
+
+# Show the graph
+plt.show()
