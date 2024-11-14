@@ -1,49 +1,66 @@
-import pandas as pd
-import plotly.graph_objects as go
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
-# Sample Data (replace with your actual data)
-data = [
-    ('123', 'abc', 'SUCCESS', 123455),
-    ('124', 'def', 'FAILURE', 234567),
-    # Add more tuples as needed
-]
+# Read the graph's HTML snippet
+with open(graph_html, 'r') as file:
+    graph_content = file.read()
 
-# Creating a DataFrame from the list
-df = pd.DataFrame(data, columns=['runID', 'pipeline_name', 'result', 'durationinmillis'])
-df['duration_in_minutes'] = df['durationinmillis'] / (60 * 1000)
+# Create email message
+email_from = "your_email@example.com"
+email_to = "recipient_email@example.com"
+subject = "Pipeline Report with Embedded Graph"
 
-# Define the base URL
-base_url = "http://yourbaseurl.com/run-details?runID="  # Replace with your actual base URL
+# Create the HTML email content
+html_content = f"""
+<html>
+<head>
+    <style>
+        /* Add custom styles if needed */
+    </style>
+</head>
+<body>
+    <h2>Pipeline Report</h2>
+    <h3>Summary:</h3>
+    <table border="1">
+        <tr>
+            <th>Total Runs</th>
+            <th>Success</th>
+            <th>Failure</th>
+            <th>Success Rate (%)</th>
+            <th>Max Runtime (min)</th>
+            <th>Min Runtime (min)</th>
+            <th>Average Runtime (min)</th>
+        </tr>
+        <tr>
+            <td>{len(df)}</td>
+            <td>{len(df[df['result'] == 'SUCCESS'])}</td>
+            <td>{len(df[df['result'] == 'FAILURE'])}</td>
+            <td>{(len(df[df['result'] == 'SUCCESS']) / len(df)) * 100:.2f}</td>
+            <td>{df['duration_in_minutes'].max():.2f}</td>
+            <td>{df['duration_in_minutes'].min():.2f}</td>
+            <td>{df['duration_in_minutes'].mean():.2f}</td>
+        </tr>
+    </table>
+    <h3>Pipeline Runtime Graph:</h3>
+    {graph_content} <!-- Embedding the graph content -->
+</body>
+</html>
+"""
 
-# Generate the URLs for each runID
-df['run_link'] = base_url + df['runID']
+# Set up the email
+message = MIMEMultipart("alternative")
+message["From"] = email_from
+message["To"] = email_to
+message["Subject"] = subject
 
-# Create clickable links for each runID
-clickable_runIDs = [f'<a href="{url}">{runID}</a>' for runID, url in zip(df['runID'], df['run_link'])]
+# Attach the HTML content
+message.attach(MIMEText(html_content, "html"))
 
-# Create a bar chart with Plotly
-colors = ['green' if result == 'SUCCESS' else 'red' for result in df['result']]
+# Send the email
+with smtplib.SMTP("smtp.example.com", 587) as server:  # Update your SMTP server and port
+    server.starttls()
+    server.login("your_email@example.com", "your_password")
+    server.sendmail(email_from, email_to, message.as_string())
 
-fig = go.Figure(data=[
-    go.Bar(
-        x=df['runID'],  # Use original runID here for plotting
-        y=df['duration_in_minutes'],
-        marker_color=colors
-    )
-])
-
-# Update the layout with clickable X-axis labels
-fig.update_layout(
-    title='Pipeline Runtime per Run',
-    xaxis_title='Run ID',
-    yaxis_title='Runtime (minutes)',
-    barmode='group',
-    xaxis=dict(
-        tickvals=df['runID'],  # Original runID values
-        ticktext=clickable_runIDs,  # Use clickable links as tick labels
-    )
-)
-
-# Save the graph to an HTML snippet with clickable X-axis links
-graph_html = 'pipeline_runtime_graph.html'
-fig.write_html(graph_html)
+print("Email sent successfully!")
