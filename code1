@@ -1,25 +1,25 @@
-import pandas as pd
+import plotly.graph_objects as go
 
-# Creating a DataFrame from the list
-df = pd.DataFrame(data, columns=['runID', 'pipeline_name', 'result', 'durationinmillis'])
+# Create a bar chart to display successful and failed runs
+colors = ['green' if result == 'SUCCESS' else 'red' for result in df['result']]
 
-# Convert duration from milliseconds to minutes for better readability
-df['duration_in_minutes'] = df['durationinmillis'] / (60 * 1000)
+fig = go.Figure(data=[
+    go.Bar(
+        x=df['runID'],
+        y=df['duration_in_minutes'],
+        marker_color=colors,
+        text=df['result'],
+        hoverinfo='text+y'
+    )
+])
 
-# Calculate Metrics
-total_runs = len(df)
-max_runtime = df['duration_in_minutes'].max()
-min_runtime = df['duration_in_minutes'].min()
-average_runtime = df['duration_in_minutes'].mean()
-number_of_success = len(df[df['result'] == 'SUCCESS'])
-number_of_failures = len(df[df['result'] == 'FAILURE'])
-success_rate = (number_of_success / total_runs) * 100
+# Update the layout of the chart
+fig.update_layout(
+    title='Pipeline Runtime per Run',
+    xaxis_title='Run ID',
+    yaxis_title='Runtime (minutes)',
+    barmode='group'
+)
 
-# Display the calculated metrics
-print(f"Total Runs: {total_runs}")
-print(f"Max Runtime: {max_runtime:.2f} min")
-print(f"Min Runtime: {min_runtime:.2f} min")
-print(f"Average Runtime: {average_runtime:.2f} min")
-print(f"Number of Success: {number_of_success}")
-print(f"Number of Failures: {number_of_failures}")
-print(f"Success Rate: {success_rate:.2f}%")
+# Display the chart
+fig.show()
