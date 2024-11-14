@@ -18,33 +18,32 @@ base_url = "http://yourbaseurl.com/run-details?runID="  # Replace with your actu
 # Generate the URLs for each runID
 df['run_link'] = base_url + df['runID']
 
+# Create clickable links for each runID
+clickable_runIDs = [f'<a href="{url}">{runID}</a>' for runID, url in zip(df['runID'], df['run_link'])]
+
 # Create a bar chart with Plotly
 colors = ['green' if result == 'SUCCESS' else 'red' for result in df['result']]
 
-# Modify hover text to include HTML links
-hover_text = [
-    f'<a href="{url}">Run ID: {runID}</a><br>Pipeline Name: {pipeline}<br>Duration: {duration:.2f} min<br>Status: {status}'
-    for runID, pipeline, status, duration, url in zip(df['runID'], df['pipeline_name'], df['result'], df['duration_in_minutes'], df['run_link'])
-]
-
 fig = go.Figure(data=[
     go.Bar(
-        x=df['runID'],
+        x=df['runID'],  # Use original runID here for plotting
         y=df['duration_in_minutes'],
-        marker_color=colors,
-        hoverinfo='text',
-        text=hover_text  # Adding the custom hover text with links
+        marker_color=colors
     )
 ])
 
-# Update the layout of the chart
+# Update the layout with clickable X-axis labels
 fig.update_layout(
     title='Pipeline Runtime per Run',
     xaxis_title='Run ID',
     yaxis_title='Runtime (minutes)',
-    barmode='group'
+    barmode='group',
+    xaxis=dict(
+        tickvals=df['runID'],  # Original runID values
+        ticktext=clickable_runIDs,  # Use clickable links as tick labels
+    )
 )
 
-# Save the graph to an HTML snippet with embedded links
+# Save the graph to an HTML snippet with clickable X-axis links
 graph_html = 'pipeline_runtime_graph.html'
 fig.write_html(graph_html)
