@@ -1,3 +1,34 @@
-<th style="border: 1px solid black; padding: 10px; text-align: left; background-color: #4CAF50; color: white;">Header 1</th>
-
-<td style="border: 1px solid black; padding: 10px; text-align: left;">
+WITH extracted_data AS (
+    SELECT
+        -- Extract username before the first '-'
+        CASE
+            WHEN name LIKE '%-%' THEN SPLIT_PART(name, '-', 1)
+            ELSE NULL
+        END AS username,
+        
+        -- Extract commit ID before 'BUILD_TAG'
+        CASE
+            WHEN description LIKE '%BUILD_TAG%' THEN REGEXP_REPLACE(description, 'BUILD_TAG.*$', '')
+            ELSE NULL
+        END AS commit_id
+    FROM
+        your_table
+    WHERE
+        name IS NOT NULL AND name != 'None' -- Exclude rows where name is NULL or 'None'
+        AND description IS NOT NULL -- Exclude rows with NULL description
+)
+SELECT
+    username,
+    commit_id,
+    COUNT(*) AS run_count
+FROM
+    extracted_data
+WHERE
+    username IS NOT NULL AND commit_id IS NOT NULL -- Ensure valid data
+GROUP BY
+    username,
+    commit_id
+HAVING
+    COUNT(*) > 1 -- Only show rows with multiple runs
+ORDER BY
+    username, commit_id;
