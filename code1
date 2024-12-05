@@ -1,21 +1,18 @@
 WITH extracted_data AS (
     SELECT
         -- Extract username before the first '-'
-        CASE
-            WHEN name LIKE '%-%' THEN SPLIT_PART(name, '-', 1)
-            ELSE NULL
-        END AS username,
+        SPLIT_PART(name, '-', 1) AS username,
         
         -- Extract commit ID before 'BUILD_TAG'
-        CASE
-            WHEN description LIKE '%BUILD_TAG%' THEN REGEXP_REPLACE(description, 'BUILD_TAG.*$', '')
-            ELSE NULL
-        END AS commit_id
+        REGEXP_REPLACE(description, 'BUILD_TAG.*$', '') AS commit_id
     FROM
         your_table
     WHERE
-        name IS NOT NULL AND name != 'None' -- Exclude rows where name is NULL or 'None'
-        AND description IS NOT NULL -- Exclude rows with NULL description
+        name IS NOT NULL -- Exclude rows with NULL in name
+        AND name NOT LIKE 'None' -- Exclude rows where name is 'None'
+        AND name LIKE '%-%' -- Only process rows where name contains a hyphen
+        AND description IS NOT NULL -- Exclude rows with NULL in description
+        AND description LIKE '%BUILD_TAG%' -- Only process rows containing 'BUILD_TAG'
 )
 SELECT
     username,
@@ -29,6 +26,6 @@ GROUP BY
     username,
     commit_id
 HAVING
-    COUNT(*) > 1 -- Only show rows with multiple runs
+    COUNT(*) > 1 -- Only include rows with multiple runs for the same commit ID
 ORDER BY
     username, commit_id;
