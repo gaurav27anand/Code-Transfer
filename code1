@@ -1,10 +1,21 @@
-count by (cleaned_name) (
-  label_replace(
-    jenkins_pipeline_data{pipeline!="excluded-pipeline-name", name!=""}[24h],
-    "cleaned_name",
-    "$1",
-    "name",
-    "^(\\w+)(?:-.*)?$"
-  )
-)
-
+groups:
+  - name: BuildAlerts
+    rules:
+      - alert: HighBuildInstancesPerUser
+        expr: sum by (cleaned_name) (
+          label_replace(
+            count_over_time(
+              jenkins_pipeline_data{pipeline!="excluded-pipeline-name", name!=""}[24h]
+            ),
+            "cleaned_name",
+            "$1",
+            "name",
+            "^(\\w+)-\\d+.*"
+          ) > 0
+        ) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High number of builds detected for user {{ $labels.cleaned_name }}"
+          description: "{{ $labels.cleaned_name }} has {{ $value }} builds in the last 24 hours (excluding pipeline '{{ $labels.pipeline }}'), which exceeds the limit of 5."
