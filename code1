@@ -1,31 +1,6 @@
-WITH extracted_data AS (
-    SELECT
-        -- Extract username before the first '-'
-        SPLIT_PART(name, '-', 1) AS username,
-        
-        -- Extract commit ID before 'BUILD_TAG'
-        REGEXP_REPLACE(description, 'BUILD_TAG.*$', '') AS commit_id
-    FROM
-        your_table
-    WHERE
-        name IS NOT NULL -- Exclude rows with NULL in name
-        AND name NOT LIKE 'None' -- Exclude rows where name is 'None'
-        AND name LIKE '%-%' -- Only process rows where name contains a hyphen
-        AND description IS NOT NULL -- Exclude rows with NULL in description
-        AND description LIKE '%BUILD_TAG%' -- Only process rows containing 'BUILD_TAG'
-)
-SELECT
-    username,
-    commit_id,
-    COUNT(*) AS run_count
-FROM
-    extracted_data
-WHERE
-    username IS NOT NULL AND commit_id IS NOT NULL -- Ensure valid data
-GROUP BY
-    username,
-    commit_id
-HAVING
-    COUNT(*) > 1 -- Only include rows with multiple runs for the same commit ID
-ORDER BY
-    username, commit_id;
+sum by (cleaned_name) (
+  label_replace(
+    count_over_time(jenkins_pipeline_data{name!=""}[24h]),
+    "cleaned_name", "$1", "name", "^(\\w+)-\\d+.*"
+  )
+) > 5
