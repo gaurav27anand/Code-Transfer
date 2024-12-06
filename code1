@@ -1,4 +1,9 @@
-label_replace(
-  jenkins_pipeline_data{name!=""}[24h],
-  "cleaned_name", "$1", "name", "^(\\w+)-\\d+.*"
+count by (cleaned_name) (
+  label_replace(
+    count_over_time(jenkins_pipeline_data{pipeline!="excluded-pipeline-name", name!=""}[24h]),
+    "cleaned_name",
+    "$1",
+    "name",
+    "^(\\w+)-.*"
+  )
 )
