@@ -1,11 +1,6 @@
 sum by (cleaned_name) (
-          label_replace(
-            count_over_time(
-              jenkins_pipeline_data{pipeline!="excluded-pipeline-name", name!=""}[24h]
-            ),
-            "cleaned_name",
-            "$1",
-            "name",
-            "^(\\w+)-\\d+.*"
-          ) > 0
-        ) > 5
+  label_replace(
+    count_over_time(jenkins_pipeline_data{name!=""}[24h]),
+    "cleaned_name", "$1", "name", "^(\\w+)-\\d+.*"
+  )
+) > 5 and on(cleaned_name) cleaned_name != ""
