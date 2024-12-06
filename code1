@@ -17,5 +17,10 @@ groups:
         labels:
           severity: warning
         annotations:
-          summary: "High number of builds detected for user {{ $labels.cleaned_name }}"
-          description: "{{ $labels.cleaned_name }} has {{ $value }} builds in the last 24 hours (excluding pipeline '{{ $labels.pipeline }}'), which exceeds the limit of 5."
+          summary: "High number of builds detected for users"
+          description: |
+            The following users have exceeded the limit of 5 builds in the last 24 hours:
+            {{ range $index, $alert := .Alerts }}
+              - **User**: {{ $alert.Labels.cleaned_name }} 
+                - **Builds**: {{ $alert.Annotations.summary }}
+            {{ end }}
