@@ -1,4 +1,4 @@
 label_replace(
-  count_over_time(jenkins_pipeline_data{name!=""}[24h]),
+  jenkins_pipeline_data{name!=""}[24h],
   "cleaned_name", "$1", "name", "^(\\w+)-\\d+.*"
 )
