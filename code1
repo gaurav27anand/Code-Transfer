@@ -1,26 +1,7 @@
-groups:
-  - name: BuildAlerts
-    rules:
-      - alert: HighBuildInstancesPerUser
-        expr: sum by (cleaned_name) (
-          label_replace(
-            count_over_time(
-              jenkins_pipeline_data{pipeline!="excluded-pipeline-name", name!=""}[24h]
-            ),
-            "cleaned_name",
-            "$1",
-            "name",
-            "^(\\w+)-\\d+.*"
-          ) > 0
-        ) > 5
-        for: 5m
-        labels:
-          severity: warning
-        annotations:
-          summary: "High number of builds detected for users"
-          description: |
-            The following users have exceeded the limit of 5 builds in the last 24 hours:
-            {{ range $index, $alert := .Alerts }}
-              - **User**: {{ $alert.Labels.cleaned_name }} 
-                - **Builds**: {{ $alert.Annotations.summary }}
-            {{ end }}
+Thank you for sharing my year-end review. I sincerely appreciate the time and effort you have taken to provide thoughtful feedback and insights about my performance this year. I am grateful for the opportunity to contribute to our team's success and for the support I’ve received along the way.
+
+Your recognition of my efforts motivates me to continue striving for excellence, and I am committed to building on this momentum in the coming year. If there are specific areas you'd like me to focus on or any additional ways I can add value, please do let me know.
+
+Thank you once again for your guidance and encouragement.
+
+Best regards,
