@@ -1,7 +1,29 @@
-Thank you for sharing my year-end review. I sincerely appreciate the time and effort you have taken to provide thoughtful feedback and insights about my performance this year. I am grateful for the opportunity to contribute to our team's success and for the support I’ve received along the way.
+Subject: Mandatory Onboarding of Projects to the Deco-Tool for Release Management
+Dear Project Owners,
 
-Your recognition of my efforts motivates me to continue striving for excellence, and I am committed to building on this momentum in the coming year. If there are specific areas you'd like me to focus on or any additional ways I can add value, please do let me know.
+As part of the Zerocopy monorepo, every project undergoes periodic releases, some more frequently than others. Over time, older releases accumulate in our AFS storage, consuming significant space. Currently, when the assigned storage limit is exceeded (~600 releases), the system automatically blocks further releases, disrupting the automated deployment pipeline.
 
-Thank you once again for your guidance and encouragement.
+To address this, we are integrating all projects into our Auto-Deco Tool, a release management solution designed to optimize storage by safely decommissioning outdated releases while ensuring critical dependencies remain intact.
 
-Best regards,
+Action Required from You:
+1️⃣ Review Default Settings – We have pre-defined settings for release decommissioning, which I will share for your review. Please confirm whether these settings work for your project or if modifications are needed.
+2️⃣ Provide Your Input – If your project has any specific retention policies or requirements, please communicate them.
+
+How the Deco-Tool Works:
+✅ Thorough Analysis Before Decommissioning:
+
+Checks if a release is actively used or has any dependencies.
+Monitors access logs (last usage, whether accessed by a human or an automated system).
+Ensures critical releases are not mistakenly removed.
+✅ Failsafe Recovery Mechanism:
+
+In rare cases where a necessary release is removed, we have a recovery process in place to restore it.
+Next Steps:
+📅 Deadline: Please review the provided settings and submit any feedback by the end of this week.
+📅 Onboarding Schedule: I will begin onboarding all projects into the deco-tool next week.
+
+This onboarding is mandatory for all projects under Zerocopy. Failure to do so may result in storage limitations affecting future releases.
+
+If you have any concerns or need further clarification, feel free to reach out.
+
+Best,
