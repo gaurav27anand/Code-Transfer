@@ -1,1 +1,24 @@
-Congratulations on the arrival of your baby boy! 🎉 Wishing you and your family joy, love, and precious moments in this beautiful new chapter. Enjoy parenthood! 👶💙
+pipeline {
+  agent any
+  environment {
+    BB_URL = "https://your-bitbucket-server.com"
+    PR_ID = "123"
+    PROJECT = "MYPROJ"
+    REPO = "my-repo"
+    BB_USER = credentials('bb-user')
+    BB_PASS = credentials('bb-pass')
+  }
+  stages {
+    stage('Delete PR') {
+      steps {
+        script {
+          sh """
+          curl -X DELETE \
+            -u "$BB_USER:$BB_PASS" \
+            "$BB_URL/rest/api/1.0/projects/$PROJECT/repos/$REPO/pull-requests/$PR_ID"
+          """
+        }
+      }
+    }
+  }
+}
