@@ -55,3 +55,12 @@ If you want to automate this investigation, let me know:
 * Would you like a bash script wrapper that combines these commands into a single audit report?
 * Are you looking to track automatic dismissals (triggered by new code pushes) or manual dismissals (by administrators)?
 
+
+
+
+
+
+
+## Other Commands:
+gh api repos/OWNER/REPO/pulls/PR_NUMBER/reviews --jq '.[] | {user: .user.login, state: .state}'
+gh api repos/OWNER/REPO/issues/PR_NUMBER/timeline --jq '.[] | select(.event == "reviewed" or .event == "committed") | {event: .event, author: (.user.login // .committer.name), date: (.submitted_at // .committer.date)}'
