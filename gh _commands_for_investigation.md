@@ -63,4 +63,10 @@ If you want to automate this investigation, let me know:
 
 ## Other Commands:
 gh api repos/OWNER/REPO/pulls/PR_NUMBER/reviews --jq '.[] | {user: .user.login, state: .state}'
+
+
 gh api repos/OWNER/REPO/issues/PR_NUMBER/timeline --jq '.[] | select(.event == "reviewed" or .event == "committed") | {event: .event, author: (.user.login // .committer.name), date: (.submitted_at // .committer.date)}'
+
+
+gh api repos/MorganStanley-Tech/ets.algo-one/issues/89161/timeline \
+  --jq '.[] | select(.event == "review_dismissed") | "❌ REVIEW DISMISSED\n- Time: \(.created_at)\n- Dismissed By: \(.actor.login)\n- Dismissal Message: \(.dismissal_info.dismissal_message // "No reason provided")\n- Original Review State: \(.dismissal_info.review_id)"'
